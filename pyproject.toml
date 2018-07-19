@@ -1,0 +1,19 @@
+[build-system]
+requires = ['flit']
+build-backend = 'flit.buildapi'
+
+[tool.flit.metadata]
+module = 'get_version'
+author = 'Philipp Angerer'
+author-email = 'phil.angerer@gmail.com'
+home-page = 'https://github.com/flying-sheep/get_version'
+classifiers = [
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+]
+
+[tool.black]
+py36 = true
+include = '\.pyi?$'

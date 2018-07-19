@@ -1,0 +1,25 @@
+get_version
+===========
+Automatically use the latest “vX.X.X” Git tag as version in your Python package.
+
+It also supports getting the version from Python source distributions (``sdist``) or,
+once your package is installed, via ``pkg_resources`` (part of ``setuptools``).
+
+usage
+-----
+Add ``setuptools`` to the dependencies of your package, and the following into ``yourpackage.py`` (or ``__init__.py``):
+
+.. code-block:: python
+
+    from get_version import get_version
+    __version__ = get_version(__file__)
+    del get_version
+
+contributing
+------------
+Use |black|_ to ensure proper code style. In order to not forget you can use |pre-commit|_.
+
+.. |black| replace:: ``black .``
+.. _black: https://black.readthedocs.io/en/stable/
+.. |pre-commit| replace:: ``pre-commit install``
+.. _pre-commit: https://pre-commit.com/
