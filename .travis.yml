@@ -11,5 +11,5 @@ matrix:
 
 install:
   - pip install --upgrade pytest testpath pytest-cov
-script: pytest --cov=get_version
+script: PYTHONPATH=. pytest --cov=get_version
 sudo: false
