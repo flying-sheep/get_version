@@ -1,6 +1,10 @@
 # Caches
 /__pycache__/
 /.pytest_cache/
+/.coverage
+
+# Packaging
+/dist/
 
 # IDEs
 /.idea/

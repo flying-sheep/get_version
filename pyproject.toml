@@ -13,6 +13,11 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
+requires-python = '>=3.6'
+
+#[tool.flit.metadata.requires-extra]
+#from-distribution = ['setuptools']
+#test = ['pytest', 'pytest-cov', 'testpath']
 
 [tool.black]
 py36 = true

@@ -9,7 +9,7 @@ import re
 import os
 from pathlib import Path
 from subprocess import run, PIPE, CalledProcessError
-from typing import NamedTuple, List, Union
+from typing import NamedTuple, List, Union, Optional
 
 RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:\+([0-9a-zA-Z.]+))?"
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
@@ -25,7 +25,7 @@ def match_groups(regex, target):
 
 class Version(NamedTuple):
     release: str
-    dev: str
+    dev: Optional[str]
     labels: List[str]
 
     @staticmethod
@@ -103,7 +103,7 @@ def get_version_from_git(parent):
     return Version(release, dev, labels)
 
 
-def get_version_from_metadata(name, parent):
+def get_version_from_metadata(name: str, parent: Optional[Path] = None):
     try:
         from pkg_resources import get_distribution, DistributionNotFound
     except ImportError:
@@ -115,16 +115,39 @@ def get_version_from_metadata(name, parent):
         return None
 
     # For an installed package, the parent is the install location
-    if Path(pkg.location).resolve() == parent.resolve():
+    if parent is not None and Path(pkg.location).resolve() == parent.resolve():
         return None
 
     return Version.parse(pkg.version)
 
 
-def get_version(path: Union[Path, str]) -> str:
-    """Path: module path (…/module.py or …/module/__init__.py)"""
-    path = Path(path)
-    assert path.suffix == ".py"
+def get_version(package: Union[Path, str]) -> str:
+    """Get the version of a package or module
+
+    Pass a module path or package name.
+    The former is recommended, since it also works for not yet installed packages.
+
+    Supports getting the version from
+
+    #. The directory name (as created by ``setup.py sdist``)
+    #. The output of ``git describe``
+    #. The package metadata of an installed package
+       (This is the only possibility when passing a name)
+
+    Args:
+       package: package name or module path (``…/module.py`` or ``…/module/__init__.py``)
+    """
+    path = Path(package)
+    if not path.suffix and len(path.parts) == 1:  # Is probably not a path
+        v = get_version_from_metadata(package)
+        if v:
+            return str(v)
+
+    if path.suffix != ".py":
+        msg = f"“package” is neither the name of an installed module nor the path to a .py file."
+        if path.suffix:
+            msg += f" Unknown file suffix {path.suffix}"
+        raise ValueError(msg)
     if path.name == "__init__.py":
         name = path.parent.name
         parent = path.parent.parent
@@ -136,6 +159,7 @@ def get_version(path: Union[Path, str]) -> str:
         get_version_from_dirname(name, parent)
         or get_version_from_git(parent)
         or get_version_from_metadata(name, parent)
+        or "0.0.0"
     )
 
 
