@@ -10,6 +10,7 @@ matrix:
       sudo: true
 
 install:
-  - pip install --upgrade pytest testpath pytest-cov
+  - pip install --upgrade pytest testpath pytest-cov coveralls
 script: PYTHONPATH=. pytest --cov=get_version
+after_success: coveralls
 sudo: false
