@@ -1,5 +1,5 @@
-get_version |b-travis| |b-black|
-================================
+get_version |b-travis| |b-pypi| |b-black|
+=========================================
 Automatically use the latest “vX.X.X” Git tag as version in your Python package.
 
 It also supports getting the version from Python source distributions (``sdist``) or,
@@ -21,6 +21,8 @@ Use |black|_ to ensure proper code style. In order to not forget you can use |pr
 
 .. |b-travis| image:: https://travis-ci.com/flying-sheep/get_version.svg?branch=master
    :target: https://travis-ci.com/flying-sheep/get_version
+.. |b-pypi| image:: https://img.shields.io/pypi/v/get_version.svg
+   :target: https://pypi.org/project/get_version
 .. |b-black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/ambv/black
 
