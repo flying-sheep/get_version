@@ -51,3 +51,6 @@ def test_metadata():
 
     v = get_version.get_version("pytest")
     assert expected == v
+
+    v = get_version.get_version(Path(pytest.__file__))
+    assert expected == v

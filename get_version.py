@@ -9,11 +9,16 @@ import re
 import os
 from pathlib import Path
 from subprocess import run, PIPE, CalledProcessError
+from textwrap import dedent
 from typing import NamedTuple, List, Union, Optional
+from logging import getLogger
+
 
 RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:\+([0-9a-zA-Z.]+))?"
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
+
+logger = getLogger(__name__)
 
 
 def match_groups(regex, target):
@@ -43,15 +48,20 @@ class Version(NamedTuple):
 def get_version_from_dirname(name, parent):
     """Extracted sdist"""
     parent = parent.resolve()
+    logger.info(f"dirname: Trying to get version of {name} from dirname {parent}")
 
-    if not re.match(f"{name}-{RE_VERSION}$", parent.name):
+    re_dirname = re.compile(f"{name}-{RE_VERSION}$")
+    if not re_dirname.match(parent.name):
+        logger.info(f"dirname: Failed; Does not match {re_dirname!r}")
         return None
 
+    logger.info("dirname: Succeeded")
     return Version.parse(parent.name[len(name) + 1 :])
 
 
 def get_version_from_git(parent):
     parent = parent.resolve()
+    logger.info(f"git: Trying to get version from git in directory {parent}")
 
     try:
         p = run(
@@ -63,10 +73,13 @@ def get_version_from_git(parent):
             check=True,
         )
     except (OSError, CalledProcessError):
+        logger.info("git: Failed; directory is not managed by git")
         return None
     if Path(p.stdout.rstrip("\r\n")).resolve() != parent.resolve():
-        # The top-level directory of the current Git repository is not the same
-        # as the root directory of the distribution: do not extract the version from Git.
+        logger.info(
+            "git: Failed; The top-level directory of the current Git repository"
+            " is not the same as the root directory of the distribution"
+        )
         return None
 
     p = run(
@@ -87,7 +100,7 @@ def get_version_from_git(parent):
         check=True,
     )
 
-    release, dev, hex, dirty = match_groups(
+    release, dev, hex_, dirty = match_groups(
         f"{RE_GIT_DESCRIBE}$", p.stdout.rstrip("\r\n")
     )
 
@@ -95,29 +108,42 @@ def get_version_from_git(parent):
     if dev == "0":
         dev = None
     else:
-        labels.append(hex)
+        labels.append(hex_)
 
     if dirty and not ON_RTD:
         labels.append("dirty")
 
+    logger.info(f"git: Succeeded")
     return Version(release, dev, labels)
 
 
 def get_version_from_metadata(name: str, parent: Optional[Path] = None):
+    logger.info(f"metadata: Trying to get version for {name} in dir {parent}")
     try:
         from pkg_resources import get_distribution, DistributionNotFound
     except ImportError:
+        logger.info("metadata: Failed; could not import pkg_resources")
         return None
 
     try:
         pkg = get_distribution(name)
     except DistributionNotFound:
+        logger.info(f"metadata: Failed; could not find distribution {name}")
         return None
 
     # For an installed package, the parent is the install location
-    if parent is not None and Path(pkg.location).resolve() == parent.resolve():
+    path_pkg = Path(pkg.location).resolve()
+    if parent is not None and path_pkg != parent.resolve():
+        msg = f"""\
+            metadata: Failed; distribution and package paths do not match:
+            {path_pkg}
+            !=
+            {parent.resolve()}\
+            """
+        logger.info(dedent(msg))
         return None
 
+    logger.info(f"metadata: Succeeded")
     return Version.parse(pkg.version)
 
 
