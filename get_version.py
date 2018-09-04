@@ -14,7 +14,7 @@ from typing import NamedTuple, List, Union, Optional
 from logging import getLogger
 
 
-RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:\+([0-9a-zA-Z.]+))?"
+RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:[_+-]([0-9a-zA-Z.]+))?"
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
