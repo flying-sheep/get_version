@@ -43,6 +43,17 @@ def test_dir(temp_tree: TempTreeCB):
         assert "0.1.3+dirty" == v
 
 
+def test_dir_dash(temp_tree: TempTreeCB):
+    dirname = "dir-two-0.1"
+    spec = {dirname: {"dir_two.py": "print('hi!')\n"}}
+    with temp_tree(spec) as package:
+        v = get_version.get_version_from_dirname("dir-two", package / dirname)
+        assert get_version.Version("0.1", None, []) == v
+
+        v = get_version.get_version(package / dirname / "dir_two.py")
+        assert "0.1" == v
+
+
 def test_metadata():
     expected = pytest.__version__
 
