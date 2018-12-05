@@ -1,5 +1,5 @@
 [build-system]
-requires = ['flit']
+requires = ['flit', 'future-fstrings']
 build-backend = 'flit.buildapi'
 
 [tool.flit.metadata]
@@ -13,12 +13,12 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
-requires-python = '>=3.6'
+requires-python = '>=3.5'
+requires = ['setuptools', 'future-fstrings']
 description-file = 'README.rst'
 
-#[tool.flit.metadata.requires-extra]
-#from-distribution = ['setuptools']
-#test = ['pytest', 'pytest-cov', 'testpath']
+[tool.flit.metadata.requires-extra]
+test = ['pytest', 'pytest-cov', 'testpath']
 
 [tool.black]
 py36 = true

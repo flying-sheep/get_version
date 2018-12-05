@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 """
 A version helper in the spirit of versioneer.
 Minimalistic and able to run without build step using pkg_resources.
@@ -114,7 +115,7 @@ def get_version_from_git(parent):
     if dirty and not ON_RTD:
         labels.append("dirty")
 
-    logger.info(f"git: Succeeded")
+    logger.info("git: Succeeded")
     return Version(release, dev, labels)
 
 
