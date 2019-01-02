@@ -6,7 +6,9 @@ python:
   - '3.7'
 
 install:
-  - pip install flit coveralls future-fstrings
+  - pip install coveralls future-fstrings
+  # install flit dev version
+  - git clone https://github.com/takluyver/flit.git; cd flit; pip install docutils requests pytoml zipfile36; python -m flit install
   - flit install
 script: PYTHONPATH=. pytest --cov=get_version
 after_success: coveralls
