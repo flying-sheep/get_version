@@ -8,8 +8,11 @@ python:
 
 install:
   - pip install coveralls future-fstrings
+  - if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then pip install pytest-black; fi
   # install flit dev version
-  - git clone https://github.com/takluyver/flit.git; cd flit; pip install docutils requests pytoml zipfile36; python -m flit install
+  - git clone https://github.com/takluyver/flit.git; cd flit; pip install docutils requests pytoml zipfile36; python -m flit install; cd ..; rm -rf flit
   - flit install
-script: PYTHONPATH=. pytest --cov=get_version
+script:
+  - if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then export BLACK_SWITCH=--black; fi
+  - PYTHONPATH=. pytest --cov=get_version $BLACK_SWITCH
 after_success: coveralls
