@@ -1,16 +1,15 @@
+dist: xenial
 language: python
+cache: pip
 python:
+  - '3.5'
   - '3.6'
-
-# 3.7 needs Xenial image because of https://github.com/travis-ci/travis-ci/issues/9069
-matrix:
-  include:
-    - python: '3.7'
-      dist: xenial
-      sudo: true
+  - '3.7'
 
 install:
-  - pip install --upgrade pytest testpath pytest-cov coveralls
+  - pip install coveralls future-fstrings
+  # install flit dev version
+  - git clone https://github.com/takluyver/flit.git; cd flit; pip install docutils requests pytoml zipfile36; python -m flit install
+  - flit install
 script: PYTHONPATH=. pytest --cov=get_version
 after_success: coveralls
-sudo: false
