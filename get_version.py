@@ -29,11 +29,11 @@ def match_groups(regex, target):
     return match.groups()
 
 
-class Version(NamedTuple):
-    release: str
-    dev: Optional[str]
-    labels: List[str]
-
+class Version(
+    NamedTuple(
+        "Version", [("release", str), ("dev", Optional[str]), ("labels", List[str])]
+    )
+):
     @staticmethod
     def parse(ver):
         release, dev, labels = match_groups(f"{RE_VERSION}$", ver)
