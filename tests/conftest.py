@@ -22,7 +22,7 @@ def temp_tree() -> Callable[[Desc], Path]:
                 assert isinstance(content, dict)
                 mk_tree(content, path)
 
-    dirs: List[TemporaryDirectory] = []
+    dirs = []  # type: List[TemporaryDirectory]
 
     def get_temptree(desc: Desc) -> Path:
         d = TemporaryDirectory()
