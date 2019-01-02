@@ -8,6 +8,7 @@ Minimalistic and able to run without build step using pkg_resources.
 
 import re
 import os
+import sys
 from pathlib import Path
 from subprocess import run, PIPE, CalledProcessError
 from textwrap import dedent
@@ -64,15 +65,20 @@ def get_version_from_dirname(name, parent):
 def get_version_from_git(parent):
     parent = parent.resolve()
     logger.info(f"git: Trying to get version from git in directory {parent}")
+    kw_compat = (
+        dict(encoding="utf-8")
+        if sys.version_info >= (3, 6)
+        else dict(universal_newlines=True)
+    )
 
     try:
         p = run(
             ["git", "rev-parse", "--show-toplevel"],
-            cwd=parent,
+            cwd=str(parent),
             stdout=PIPE,
             stderr=PIPE,
-            encoding="utf-8",
             check=True,
+            **kw_compat,
         )
     except (OSError, CalledProcessError):
         logger.info("git: Failed; directory is not managed by git")
@@ -95,11 +101,11 @@ def get_version_from_git(parent):
             "--match",
             "v[0-9]*",
         ],
-        cwd=parent,
+        cwd=str(parent),
         stdout=PIPE,
         stderr=PIPE,
-        encoding="utf-8",
         check=True,
+        **kw_compat,
     )
 
     release, dev, hex_, dirty = match_groups(
