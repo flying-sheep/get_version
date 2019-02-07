@@ -14,7 +14,10 @@ classifiers = [
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
 requires-python = '>=3.5'
-requires = ['setuptools', 'future-fstrings']
+requires = [
+	'setuptools',
+	'future-fstrings',
+]
 description-file = 'README.rst'
 
 [tool.flit.metadata.requires-extra]
@@ -23,6 +26,7 @@ test = [
     'pytest-cov',
     'pytest-black; python_version != "3.5"',
     'testpath',
+    'pygments',  # for README highlighting check
 ]
 
 [tool.black]
