@@ -1,5 +1,5 @@
 [build-system]
-requires = ['flit', 'future-fstrings']
+requires = ['flit>=1.3', 'future-fstrings']
 build-backend = 'flit.buildapi'
 
 [tool.flit.metadata]
@@ -18,7 +18,12 @@ requires = ['setuptools', 'future-fstrings']
 description-file = 'README.rst'
 
 [tool.flit.metadata.requires-extra]
-test = ['pytest', 'pytest-cov', 'testpath']
+test = [
+    'pytest',
+    'pytest-cov',
+    'pytest-black; python_version != "3.5"',
+    'testpath',
+]
 
 [tool.black]
 py36 = true

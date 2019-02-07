@@ -7,12 +7,10 @@ python:
   - '3.7'
 
 install:
-  - pip install coveralls future-fstrings
-  - if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then pip install pytest-black; fi
-  # install flit dev version
-  - git clone https://github.com/takluyver/flit.git; cd flit; pip install docutils requests pytoml zipfile36; python -m flit install; cd ..; rm -rf flit
-  - flit install
+  - pip install future-fstrings flit coveralls
+  - flit install --deps develop
 script:
   - if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then export BLACK_SWITCH=--black; fi
   - PYTHONPATH=. pytest --cov=get_version $BLACK_SWITCH
+  - rst2html.py --halt=2 README.rst >/dev/null
 after_success: coveralls
