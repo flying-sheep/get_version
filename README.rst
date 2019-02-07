@@ -1,4 +1,4 @@
-get_version |b-travis| |b-cover| |b-pypi| |b-black|
+get_version |b-pypi| |b-travis| |b-cover| |b-black|
 ===================================================
 Automatically use the latest “vX.X.X” Git tag as version in your Python package.
 
