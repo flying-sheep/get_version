@@ -1,4 +1,3 @@
-# -*- coding: future_fstrings -*-
 """
 A version helper in the spirit of versioneer.
 Minimalistic and able to run without build step using pkg_resources.
