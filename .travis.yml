@@ -9,7 +9,6 @@ install:
   - pip install future-fstrings flit coveralls
   - flit install --deps develop
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then export BLACK_SWITCH=--black; fi
-  - PYTHONPATH=. pytest --cov=get_version $BLACK_SWITCH
+  - PYTHONPATH=. pytest --cov=get_version --black
   - rst2html.py --halt=2 README.rst >/dev/null
 after_success: coveralls
