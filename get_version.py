@@ -187,6 +187,8 @@ def get_version(package: Union[Path, str]) -> str:
     else:
         name = path.with_suffix("").name
         parent = path.parent
+    if parent.name == "src":
+        parent = parent.parent
 
     return str(
         get_version_from_dirname(name, parent)
