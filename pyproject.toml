@@ -1,6 +1,6 @@
 [build-system]
-requires = ['flit>=1.3']
-build-backend = 'flit.buildapi'
+requires = ['flit-core>=2,<4']
+build-backend = 'flit_core.buildapi'
 
 [tool.flit.metadata]
 module = 'get_version'
@@ -13,7 +13,7 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
-requires-python = '>=3.6'
+requires-python = '>=3.7'
 requires = ['setuptools']
 description-file = 'README.rst'
 
@@ -27,5 +27,4 @@ test = [
 ]
 
 [tool.black]
-py36 = true
 include = '\.pyi?$'

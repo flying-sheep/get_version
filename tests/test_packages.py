@@ -20,26 +20,39 @@ else:
 """
 
 
-def test_git(temp_tree: TempTreeCB):
-    spec = {".git": {}, "git_mod.py": "print('hello')\n"}
+@pytest.fixture(params=[True, False], ids=["src", "plain"])
+def has_src(request) -> bool:
+    return request.param
+
+
+def test_git(temp_tree: TempTreeCB, has_src):
+    content = {"git_mod.py": "print('hello')\n"}
+    if has_src:
+        content = dict(src=content)
+    spec = {".git": {}, **content}
     with temp_tree(spec) as package, MockCommand(
         "git", mock_git_describe.format(package)
     ):
         v = get_version.get_version_from_git(package)
         assert get_version.Version("0.1.2", "3", ["fefe123", "dirty"]) == v
 
-        v = get_version.get_version(package / "git_mod.py")
+        parent = (package / "src") if has_src else package
+        v = get_version.get_version(parent / "git_mod.py")
         assert "0.1.2.dev3+fefe123.dirty" == v
 
 
-def test_dir(temp_tree: TempTreeCB):
+def test_dir(temp_tree: TempTreeCB, has_src):
     dirname = "dir_mod-0.1.3+dirty"
-    spec = {dirname: {"dir_mod.py": "print('hi!')\n"}}
+    content = {"dir_mod.py": "print('hi!')\n"}
+    if has_src:
+        content = dict(src=content)
+    spec = {dirname: content}
     with temp_tree(spec) as package:
         v = get_version.get_version_from_dirname("dir_mod", package / dirname)
         assert get_version.Version("0.1.3", None, ["dirty"]) == v
 
-        v = get_version.get_version(package / dirname / "dir_mod.py")
+        parent = (package / dirname / "src") if has_src else (package / dirname)
+        v = get_version.get_version(parent / "dir_mod.py")
         assert "0.1.3+dirty" == v
 
 
