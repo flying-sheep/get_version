@@ -1,5 +1,5 @@
 [build-system]
-requires = ['flit-core>=2,<4']
+requires = ['flit-core>=2,<4', 'dunamai']
 build-backend = 'flit_core.buildapi'
 
 [tool.flit.metadata]
@@ -14,7 +14,9 @@ classifiers = [
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
 requires-python = '>=3.7'
-requires = ['setuptools']
+requires = [
+    'dunamai',  # Version parsing
+]
 description-file = 'README.rst'
 
 [tool.flit.metadata.requires-extra]
@@ -22,7 +24,6 @@ test = [
     'pytest',
     'pytest-cov',
     'pytest-black; python_version != "3.5"',
-    'testpath',
     'pygments',  # for README highlighting check
 ]
 

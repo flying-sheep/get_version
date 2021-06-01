@@ -9,9 +9,8 @@ branches:
   - master  # All other branches should become (draft) PRs and be build that way
 
 install:
-  - pip install flit coveralls
-  - flit install --deps develop
+  - pip install -U pip coveralls
+  - pip install .[test]
 script:
   - PYTHONPATH=. pytest --cov=get_version --black
-  - rst2html.py --halt=2 README.rst >/dev/null
 after_success: coveralls

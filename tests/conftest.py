@@ -5,7 +5,7 @@ from typing import Union, Callable, Dict, List
 import pytest
 
 
-Desc = Dict[str, Union["Desc", str, bytes]]
+Desc = Dict[Union[str, Path], Union["Desc", str, bytes]]
 
 
 @pytest.fixture(scope="function")
