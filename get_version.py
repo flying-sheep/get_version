@@ -7,124 +7,95 @@ Minimalistic and able to run without build step using pkg_resources.
 
 import re
 import os
-import sys
+from contextlib import contextmanager
 from pathlib import Path
-from subprocess import run, PIPE, CalledProcessError
 from textwrap import dedent
-from typing import NamedTuple, List, Union, Optional
+from typing import Union, Optional
 from logging import getLogger
 
 
-RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:[_+-]([0-9a-zA-Z.]+))?"
+RE_PEP440_VERSION = re.compile(
+    r"""
+(?:(?P<epoch>[0-9]+)!)?                           # epoch
+(?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+(?P<pre>                                          # pre-release
+    [-_.]?
+    (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+    [-_.]?
+    (?P<pre_n>[0-9]+)?
+)?
+(?P<post>                                         # post release
+    -(?P<post_n1>[0-9]+)
+    |
+    [-_.]?
+    (?P<post_l>post|rev|r)
+    [-_.]?
+    (?P<post_n2>[0-9]+)?
+)?
+(?P<dev>                                          # dev release
+    [-_.]?
+    (?P<dev_l>dev)
+    [-_.]?
+    (?P<dev_n>[0-9]+)?
+)?
+(?:\+(?P<local>[a-z0-9]+(?:[-_.][a-z0-9]+)*))?    # local version
+""",
+    re.VERBOSE,
+)
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
 logger = getLogger(__name__)
 
 
-def match_groups(regex, target):
-    match = re.match(regex, target)
-    if match is None:
-        raise re.error(f"Regex does not match “{target}”. RE Pattern: {regex}", regex)
-    return match.groups()
+@contextmanager
+def working_dir(dir_: Optional[os.PathLike] = None):
+    curdir = os.getcwd()
+    try:
+        if dir_ is not None:
+            os.chdir(dir_)
+        yield
+    finally:
+        os.chdir(curdir)
 
 
-class Version(
-    NamedTuple(
-        "Version", [("release", str), ("dev", Optional[str]), ("labels", List[str])]
-    )
-):
-    @staticmethod
-    def parse(ver):
-        release, dev, labels = match_groups(f"{RE_VERSION}$", ver)
-        return Version(release, dev, labels.split(".") if labels else [])
-
-    def __str__(self):
-        release = self.release if self.release else "0.0"
-        dev = f".dev{self.dev}" if self.dev else ""
-        labels = f'+{".".join(self.labels)}' if self.labels else ""
-        return f"{release}{dev}{labels}"
-
-
-def get_version_from_dirname(name, parent):
+def get_version_from_dirname(name: str, parent: Path) -> Optional[str]:
     """Extracted sdist"""
     parent = parent.resolve()
     logger.info(f"dirname: Trying to get version of {name} from dirname {parent}")
 
     name_re = name.replace("_", "[_-]")
-    re_dirname = re.compile(f"{name_re}-{RE_VERSION}$")
+    re_dirname = re.compile(f"{name_re}-{RE_PEP440_VERSION.pattern}$", re.VERBOSE)
     if not re_dirname.match(parent.name):
-        logger.info(f"dirname: Failed; Does not match {re_dirname!r}")
+        logger.info(
+            f"dirname: Failed; Directory name {parent.name!r} does not contain a valid version"
+        )
         return None
 
     logger.info("dirname: Succeeded")
-    return Version.parse(parent.name[len(name) + 1 :])
+    return parent.name[len(name) + 1 :]
 
 
-def get_version_from_git(parent):
+def get_version_from_vcs(parent: Path) -> Optional[str]:
     parent = parent.resolve()
-    logger.info(f"git: Trying to get version from git in directory {parent}")
-    kw_compat = (
-        dict(encoding="utf-8")
-        if sys.version_info >= (3, 6)
-        else dict(universal_newlines=True)
-    )
+    logger.info(f"git: Trying to get version from VCS in directory {parent}")
 
     try:
-        p = run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=str(parent),
-            stdout=PIPE,
-            stderr=PIPE,
-            check=True,
-            **kw_compat,
-        )
-    except (OSError, CalledProcessError):
-        logger.info("git: Failed; directory is not managed by git")
-        return None
-    if Path(p.stdout.rstrip("\r\n")).resolve() != parent.resolve():
-        logger.info(
-            "git: Failed; The top-level directory of the current Git repository"
-            " is not the same as the root directory of the distribution"
-        )
+        from dunamai import Version
+
+        with working_dir(parent):
+            version = Version.from_any_vcs()
+    except (RuntimeError, ImportError) as e:
+        logger.info(f"dirname: Failed; {e}")
         return None
 
-    p = run(
-        [
-            "git",
-            "describe",
-            "--tags",
-            "--dirty",
-            "--always",
-            "--long",
-            "--match",
-            "v[0-9]*",
-        ],
-        cwd=str(parent),
-        stdout=PIPE,
-        stderr=PIPE,
-        check=True,
-        **kw_compat,
-    )
-
-    release, dev, hex_, dirty = match_groups(
-        f"{RE_GIT_DESCRIBE}$", p.stdout.rstrip("\r\n")
-    )
-
-    labels = []
-    if dev == "0":
-        dev = None
-    else:
-        labels.append(hex_)
-
-    if dirty and not ON_RTD:
-        labels.append("dirty")
-
-    logger.info("git: Succeeded")
-    return Version(release, dev, labels)
+    logger.info("VCS: Succeeded")
+    return version.serialize(dirty=not ON_RTD)
 
 
-def get_version_from_metadata(name: str, parent: Optional[Path] = None):
+def get_version_from_metadata(
+    name: str, parent: Optional[Path] = None
+) -> Optional[str]:
     logger.info(f"metadata: Trying to get version for {name} in dir {parent}")
     try:
         from pkg_resources import get_distribution, DistributionNotFound
@@ -151,7 +122,7 @@ def get_version_from_metadata(name: str, parent: Optional[Path] = None):
         return None
 
     logger.info(f"metadata: Succeeded")
-    return Version.parse(pkg.version)
+    return pkg.version
 
 
 def get_version(package: Union[Path, str]) -> str:
@@ -190,12 +161,16 @@ def get_version(package: Union[Path, str]) -> str:
     if parent.name == "src":
         parent = parent.parent
 
-    return str(
+    version = (
         get_version_from_dirname(name, parent)
-        or get_version_from_git(parent)
+        or get_version_from_vcs(parent)
         or get_version_from_metadata(name, parent)
-        or "0.0.0"
     )
+
+    if version is None:
+        raise RuntimeError("No version found.")
+
+    return version
 
 
 __version__ = get_version(__file__)

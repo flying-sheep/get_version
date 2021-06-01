@@ -1,8 +1,9 @@
 from pathlib import Path
+from subprocess import run
 from typing import Dict, Union, Callable
 
 import pytest
-from testpath import MockCommand
+from dunamai import Version
 
 import get_version
 
@@ -26,19 +27,37 @@ def has_src(request) -> bool:
 
 
 def test_git(temp_tree: TempTreeCB, has_src):
-    content = {"git_mod.py": "print('hello')\n"}
+    src_path = Path("git_mod.py")
+    content = {src_path: "print('hello')\n"}
     if has_src:
+        src_path = Path("src") / src_path
         content = dict(src=content)
-    spec = {".git": {}, **content}
-    with temp_tree(spec) as package, MockCommand(
-        "git", mock_git_describe.format(package)
-    ):
-        v = get_version.get_version_from_git(package)
-        assert get_version.Version("0.1.2", "3", ["fefe123", "dirty"]) == v
+    with temp_tree(content) as package:
+        with get_version.working_dir(package):
+
+            def add_and_commit(msg: str):
+                run(f"git add {src_path}".split(), check=True)
+                run([*"git commit -m".split(), msg], check=True)
+
+            run("git init".split(), check=True)
+            add_and_commit("initial")
+            run("git tag v0.1.2".split(), check=True)
+            src_path.write_text("print('modified')")
+            add_and_commit("modified")
+            hash = run(
+                "git rev-parse --short HEAD".split(),
+                capture_output=True,
+                encoding="ascii",
+            ).stdout.strip()
+            src_path.write_text("print('dirty')")
+
+            v = Version.from_any_vcs()
+
+        assert Version("0.1.2", distance=1, commit=hash, dirty=True) == v
 
         parent = (package / "src") if has_src else package
         v = get_version.get_version(parent / "git_mod.py")
-        assert "0.1.2.dev3+fefe123.dirty" == v
+        assert f"0.1.2.post1.dev0+{hash}.dirty" == v
 
 
 def test_dir(temp_tree: TempTreeCB, has_src):
@@ -49,7 +68,7 @@ def test_dir(temp_tree: TempTreeCB, has_src):
     spec = {dirname: content}
     with temp_tree(spec) as package:
         v = get_version.get_version_from_dirname("dir_mod", package / dirname)
-        assert get_version.Version("0.1.3", None, ["dirty"]) == v
+        assert "0.1.3+dirty" == v
 
         parent = (package / dirname / "src") if has_src else (package / dirname)
         v = get_version.get_version(parent / "dir_mod.py")
@@ -61,7 +80,7 @@ def test_dir_dash(temp_tree: TempTreeCB):
     spec = {dirname: {"dir_two.py": "print('hi!')\n"}}
     with temp_tree(spec) as package:
         v = get_version.get_version_from_dirname("dir-two", package / dirname)
-        assert get_version.Version("0.1", None, []) == v
+        assert "0.1" == v
 
         v = get_version.get_version(package / dirname / "dir_two.py")
         assert "0.1" == v
@@ -71,7 +90,7 @@ def test_metadata():
     expected = pytest.__version__
 
     v = get_version.get_version_from_metadata("pytest")
-    assert get_version.Version(expected, None, []) == v
+    assert expected == v
 
     v = get_version.get_version("pytest")
     assert expected == v
