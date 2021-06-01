@@ -10,7 +10,7 @@ branches:
 
 install:
   - pip install -U pip coveralls
-  - pip install .[develop]
+  - pip install .[test]
 script:
   - PYTHONPATH=. pytest --cov=get_version --black
   - rst2html.py --halt=2 README.rst >/dev/null
