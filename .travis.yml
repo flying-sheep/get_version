@@ -13,5 +13,4 @@ install:
   - pip install .[test]
 script:
   - PYTHONPATH=. pytest --cov=get_version --black
-  - rst2html.py --halt=2 README.rst >/dev/null
 after_success: coveralls
