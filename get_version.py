@@ -16,29 +16,21 @@ from logging import getLogger
 
 RE_PEP440_VERSION = re.compile(
     r"""
-(?:(?P<epoch>[0-9]+)!)?                           # epoch
-(?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
-(?P<pre>                                          # pre-release
+v?
+(?:(?P<epoch>[0-9]+)!)?
+(?P<base>[0-9]+(?:\.[0-9]+)*)
+(?:
     [-_.]?
-    (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+    (?P<stage>
+        a|b|c|rc|alpha|beta|pre|preview  # pre-releases
+        |post|rev|r
+        |dev
+    )
     [-_.]?
-    (?P<pre_n>[0-9]+)?
-)?
-(?P<post>                                         # post release
-    -(?P<post_n1>[0-9]+)
-    |
-    [-_.]?
-    (?P<post_l>post|rev|r)
-    [-_.]?
-    (?P<post_n2>[0-9]+)?
-)?
-(?P<dev>                                          # dev release
-    [-_.]?
-    (?P<dev_l>dev)
-    [-_.]?
-    (?P<dev_n>[0-9]+)?
-)?
-(?:\+(?P<local>[a-z0-9]+(?:[-_.][a-z0-9]+)*))?    # local version
+    (?P<revision>[0-9]+)?
+)*
+(?:-(?P<alt_post_revision>[0-9]+))?
+(?:\+(?P<tagged_metadata>[a-z0-9]+(?:[-_.][a-z0-9]+)*))?
 """,
     re.VERBOSE,
 )
@@ -76,15 +68,19 @@ def get_version_from_dirname(name: str, parent: Path) -> Optional[str]:
     return parent.name[len(name) + 1 :]
 
 
+def dunamai_get_from_vcs(dir_: Path):
+    from dunamai import Version
+
+    with working_dir(dir_):
+        return Version.from_any_vcs(f"(?x){RE_PEP440_VERSION.pattern}")
+
+
 def get_version_from_vcs(parent: Path) -> Optional[str]:
     parent = parent.resolve()
     logger.info(f"git: Trying to get version from VCS in directory {parent}")
 
     try:
-        from dunamai import Version
-
-        with working_dir(parent):
-            version = Version.from_any_vcs()
+        version = dunamai_get_from_vcs(parent)
     except (RuntimeError, ImportError) as e:
         logger.info(f"dirname: Failed; {e}")
         return None
@@ -170,6 +166,7 @@ def get_version(package: Union[Path, str]) -> str:
     if version is None:
         raise RuntimeError("No version found.")
 
+    assert RE_PEP440_VERSION.match(version)
     return version
 
 

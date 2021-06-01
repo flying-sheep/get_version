@@ -26,7 +26,9 @@ def has_src(request) -> bool:
     return request.param
 
 
-def test_git(temp_tree: TempTreeCB, has_src):
+@pytest.mark.parametrize("with_v", [True, False])
+@pytest.mark.parametrize("version", [Version("0.1.2"), Version("1", stage=("a", 2))])
+def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
     src_path = Path("git_mod.py")
     content = {src_path: "print('hello')\n"}
     if has_src:
@@ -41,7 +43,7 @@ def test_git(temp_tree: TempTreeCB, has_src):
 
             run("git init".split(), check=True)
             add_and_commit("initial")
-            run("git tag v0.1.2".split(), check=True)
+            run(f"git tag {'v' if with_v else ''}{version}".split(), check=True)
             src_path.write_text("print('modified')")
             add_and_commit("modified")
             hash = run(
@@ -51,13 +53,21 @@ def test_git(temp_tree: TempTreeCB, has_src):
             ).stdout.strip()
             src_path.write_text("print('dirty')")
 
-            v = Version.from_any_vcs()
-
-        assert Version("0.1.2", distance=1, commit=hash, dirty=True) == v
+        v = get_version.dunamai_get_from_vcs(package)
+        assert (
+            Version(
+                version.base,
+                stage=(version.stage, version.revision),
+                distance=1,
+                commit=hash,
+                dirty=True,
+            )
+            == v
+        )
 
         parent = (package / "src") if has_src else package
         v = get_version.get_version(parent / "git_mod.py")
-        assert f"0.1.2.post1.dev0+{hash}.dirty" == v
+        assert f"{version}.post1.dev0+{hash}.dirty" == v
 
 
 def test_dir(temp_tree: TempTreeCB, has_src):
