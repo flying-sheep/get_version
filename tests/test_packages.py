@@ -41,7 +41,7 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
                 run(f"git add {src_path}".split(), check=True)
                 run([*"git commit -m".split(), msg], check=True)
 
-            run("git init -b test".split(), check=True)
+            run("git init".split(), check=True)
             add_and_commit("initial")
             run(f"git tag {'v' if with_v else ''}{version}".split(), check=True)
             src_path.write_text("print('modified')")
