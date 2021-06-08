@@ -16,7 +16,6 @@ from logging import getLogger
 
 RE_PEP440_VERSION = re.compile(
     r"""
-v?
 (?:(?P<epoch>[0-9]+)!)?
 (?P<base>[0-9]+(?:\.[0-9]+)*)
 (?:
@@ -51,28 +50,32 @@ def working_dir(dir_: Optional[os.PathLike] = None):
         os.chdir(curdir)
 
 
-def get_version_from_dirname(name: str, parent: Path) -> Optional[str]:
+def get_version_from_dirname(parent: Path) -> Optional[str]:
     """Extracted sdist"""
     parent = parent.resolve()
-    logger.info(f"dirname: Trying to get version of {name} from dirname {parent}")
+    logger.info(f"dirname: Trying to get version from dirname {parent}")
 
-    name_re = name.replace("_", "[_-]")
-    re_dirname = re.compile(f"{name_re}-{RE_PEP440_VERSION.pattern}$", re.VERBOSE)
-    if not re_dirname.match(parent.name):
+    re_dirname = re.compile(
+        f"[A-Za-z]+(?:[_-][A-Za-z]+)*-(?P<version>{RE_PEP440_VERSION.pattern})$",
+        re.VERBOSE,
+    )
+    match = re_dirname.match(parent.name)
+    if not match:
         logger.info(
-            f"dirname: Failed; Directory name {parent.name!r} does not contain a valid version"
+            f"dirname: Failed; Directory name {parent.name!r} "
+            "does not contain a valid version"
         )
         return None
 
     logger.info("dirname: Succeeded")
-    return parent.name[len(name) + 1 :]
+    return match["version"]
 
 
 def dunamai_get_from_vcs(dir_: Path):
     from dunamai import Version
 
     with working_dir(dir_):
-        return Version.from_any_vcs(f"(?x){RE_PEP440_VERSION.pattern}")
+        return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
 
 
 def get_version_from_vcs(parent: Path) -> Optional[str]:
@@ -158,7 +161,7 @@ def get_version(package: Union[Path, str]) -> str:
         parent = parent.parent
 
     version = (
-        get_version_from_dirname(name, parent)
+        get_version_from_dirname(parent)
         or get_version_from_vcs(parent)
         or get_version_from_metadata(name, parent)
     )
