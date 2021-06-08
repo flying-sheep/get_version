@@ -41,7 +41,7 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
                 run(f"git add {src_path}".split(), check=True)
                 run([*"git commit -m".split(), msg], check=True)
 
-            run("git init".split(), check=True)
+            run("git init -b test".split(), check=True)
             add_and_commit("initial")
             run(f"git tag {'v' if with_v else ''}{version}".split(), check=True)
             src_path.write_text("print('modified')")
@@ -70,19 +70,29 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         assert f"{version}.post1.dev0+{hash}.dirty" == v
 
 
-def test_dir(temp_tree: TempTreeCB, has_src):
-    dirname = "dir_mod-0.1.3+dirty"
+@pytest.mark.parametrize(
+    "dirname, version",
+    [
+        ("dir_mod-0.1.3+dirty", "0.1.3+dirty"),
+        (
+            "dir-mod-1.2.post29.dev0+41ced3e.dirty",
+            "1.2.post29.dev0+41ced3e.dirty",
+        ),
+    ],
+)
+@pytest.mark.parametrize("distname", ["dir_mod", "dir-mod", "mod"])
+def test_dir(temp_tree: TempTreeCB, has_src, dirname, version, distname):
     content = {"dir_mod.py": "print('hi!')\n"}
     if has_src:
         content = dict(src=content)
     spec = {dirname: content}
     with temp_tree(spec) as package:
-        v = get_version.get_version_from_dirname("dir_mod", package / dirname)
-        assert "0.1.3+dirty" == v
+        v = get_version.get_version_from_dirname(distname, package / dirname)
+        assert version == v
 
         parent = (package / dirname / "src") if has_src else (package / dirname)
         v = get_version.get_version(parent / "dir_mod.py")
-        assert "0.1.3+dirty" == v
+        assert version == v
 
 
 def test_dir_dash(temp_tree: TempTreeCB):
