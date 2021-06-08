@@ -124,10 +124,10 @@ def get_version_from_metadata(
     return pkg.version
 
 
-def get_version(package: Union[Path, str]) -> str:
+def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -> str:
     """Get the version of a package or module
 
-    Pass a module path or package name.
+    Pass a module path or package name (``dist_name``).
     The former is recommended, since it also works for not yet installed packages.
 
     Supports getting the version from
@@ -139,10 +139,15 @@ def get_version(package: Union[Path, str]) -> str:
 
     Args:
        package: package name or module path (``…/module.py`` or ``…/module/__init__.py``)
+       dist_name: If the distribution name isn’t the same as the module name,
+                  you can specify it, e.g. in ``PIL/__init__.py``,
+                  there would be ``get_version(__file__, 'Pillow')``
     """
     path = Path(package)
-    if not path.suffix and len(path.parts) == 1:  # Is probably not a path
-        v = get_version_from_metadata(package)
+    if dist_name is None and not path.suffix and len(path.parts) == 1:
+        # Is probably not a path
+        dist_name = path.name
+        v = get_version_from_metadata(dist_name)
         if v:
             return str(v)
 
@@ -152,18 +157,20 @@ def get_version(package: Union[Path, str]) -> str:
             msg += f" Unknown file suffix {path.suffix}"
         raise ValueError(msg)
     if path.name == "__init__.py":
-        name = path.parent.name
+        mod_name = path.parent.name
         parent = path.parent.parent
     else:
-        name = path.with_suffix("").name
+        mod_name = path.with_suffix("").name
         parent = path.parent
+    if dist_name is None:
+        dist_name = mod_name
     if parent.name == "src":
         parent = parent.parent
 
     version = (
         get_version_from_dirname(parent)
         or get_version_from_vcs(parent)
-        or get_version_from_metadata(name, parent)
+        or get_version_from_metadata(dist_name, parent)
     )
 
     if version is None:
