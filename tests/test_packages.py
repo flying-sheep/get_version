@@ -11,16 +11,6 @@ Desc = Dict[str, Union["Desc", str, bytes]]
 TempTreeCB = Callable[[Desc], Path]
 
 
-mock_git_describe = """\
-#!/usr/bin/env python3
-import sys
-if "--show-toplevel" in sys.argv:
-    print("{}")
-else:
-    print("v0.1.2-3-gfefe123-dirty")
-"""
-
-
 @pytest.fixture(params=[True, False], ids=["src", "plain"])
 def has_src(request) -> bool:
     return request.param
