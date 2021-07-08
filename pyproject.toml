@@ -16,6 +16,7 @@ classifiers = [
 requires-python = '>=3.7'
 requires = [
     'dunamai',  # Version parsing
+    'importlib_metadata; python_version < "3.8"',
 ]
 description-file = 'README.rst'
 
@@ -23,7 +24,7 @@ description-file = 'README.rst'
 test = [
     'pytest',
     'pytest-cov',
-    'pytest-black; python_version != "3.5"',
+    'pytest-black',
     'pygments',  # for README highlighting check
 ]
 

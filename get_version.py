@@ -9,7 +9,6 @@ import re
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from textwrap import dedent
 from typing import Union, Optional
 from logging import getLogger
 
@@ -97,27 +96,31 @@ def get_version_from_metadata(
 ) -> Optional[str]:
     logger.info(f"metadata: Trying to get version for {name} in dir {parent}")
     try:
-        from pkg_resources import get_distribution, DistributionNotFound
+        from importlib.metadata import distribution, PackageNotFoundError
     except ImportError:
-        logger.info("metadata: Failed; could not import pkg_resources")
-        return None
+        from importlib_metadata import distribution, PackageNotFoundError
 
     try:
-        pkg = get_distribution(name)
-    except DistributionNotFound:
+        pkg = distribution(name)
+    except PackageNotFoundError:
         logger.info(f"metadata: Failed; could not find distribution {name}")
         return None
 
     # For an installed package, the parent is the install location
-    path_pkg = Path(pkg.location).resolve()
-    if parent is not None and path_pkg != parent.resolve():
-        msg = f"""\
-            metadata: Failed; distribution and package paths do not match:
-            {path_pkg}
-            !=
-            {parent.resolve()}\
-            """
-        logger.info(dedent(msg))
+    pkg_paths = {
+        Path(pkg.locate_file(mod)).resolve()
+        for mod in {f.parts[0] for f in pkg.files if f.suffix == ".py"}
+    }
+    if parent is not None and parent.resolve() not in pkg_paths:
+        msg = (
+            "metadata: Failed; distribution and package paths do not match:\n"
+            f"{parent.resolve()}\nis not\n"
+        )
+        if len(pkg_paths) > 1:
+            msg += "\n".join(f"- {p}" for p in pkg_paths)
+        else:
+            msg += str(next(iter(pkg_paths)))
+        logger.info(msg)
         return None
 
     logger.info(f"metadata: Succeeded")
