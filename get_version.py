@@ -122,12 +122,12 @@ def get_version_from_metadata(
 
     # For an installed package, the parent is the install location
     pkg_paths = {
-        Path(pkg.locate_file(mod)).resolve()
-        for mod in {f.parts[0] for f in pkg.files if f.suffix == ".py"}
+        Path(pkg.locate_file(mod)).parent.resolve()
+        for mod in (pkg.read_text("top_level.txt") or "").split()
     }
     if parent is not None and parent.resolve() not in pkg_paths:
         msg = (
-            "Distribution and package paths do not match;\n"
+            "Distribution and package parent paths do not match;\n"
             f"{parent.resolve()}\nis not"
         )
         if len(pkg_paths) > 1:
