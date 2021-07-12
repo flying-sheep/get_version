@@ -5,13 +5,22 @@ Minimalistic and able to run without build step using pkg_resources.
 
 # __version__ is defined at the very end of this file.
 
+from __future__ import annotations
+
 import re
 import os
 from contextlib import contextmanager
+from dataclasses import dataclass
+from enum import Enum
+from functools import partial
 from pathlib import Path
-from textwrap import dedent
-from typing import Union, Optional
-from logging import getLogger
+from textwrap import indent
+from typing import Union, Optional, List
+
+try:
+    from importlib.metadata import distribution, Distribution, PackageNotFoundError
+except ImportError:
+    from importlib_metadata import distribution, Distribution, PackageNotFoundError
 
 
 RE_PEP440_VERSION = re.compile(
@@ -36,8 +45,6 @@ RE_PEP440_VERSION = re.compile(
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
-logger = getLogger(__name__)
-
 
 @contextmanager
 def working_dir(dir_: Optional[os.PathLike] = None):
@@ -50,24 +57,40 @@ def working_dir(dir_: Optional[os.PathLike] = None):
         os.chdir(curdir)
 
 
+class Source(Enum):
+    dirname = "Directory name"
+    vcs = "VCS"
+    metadata = "Package metadata"
+
+
+@dataclass
+class NoVersionFound(RuntimeError):
+    source: Optional[Source] = None
+    msg: Optional[str] = None
+
+    def __str__(self) -> str:
+        src = f" via {self.source.value}" if self.source else ""
+        if self.msg is not None:
+            delim = "\n" if "\n" in self.msg else " "
+            msg = f":{delim}{self.msg}"
+        else:
+            msg = "."
+        return f"No version found{src}{msg}"
+
+
 def get_version_from_dirname(parent: Path) -> Optional[str]:
     """Extracted sdist"""
     parent = parent.resolve()
-    logger.info(f"dirname: Trying to get version from dirname {parent}")
-
     re_dirname = re.compile(
         f"[A-Za-z]+(?:[_-][A-Za-z]+)*-(?P<version>{RE_PEP440_VERSION.pattern})$",
         re.VERBOSE,
     )
     match = re_dirname.match(parent.name)
     if not match:
-        logger.info(
-            f"dirname: Failed; Directory name {parent.name!r} "
-            "does not contain a valid version"
+        raise NoVersionFound(
+            Source.dirname,
+            f"Name of directory “{parent}” does not contain a valid version.",
         )
-        return None
-
-    logger.info("dirname: Succeeded")
     return match["version"]
 
 
@@ -80,48 +103,53 @@ def dunamai_get_from_vcs(dir_: Path):
 
 def get_version_from_vcs(parent: Path) -> Optional[str]:
     parent = parent.resolve()
-    logger.info(f"git: Trying to get version from VCS in directory {parent}")
-
     try:
         version = dunamai_get_from_vcs(parent)
     except (RuntimeError, ImportError) as e:
-        logger.info(f"dirname: Failed; {e}")
-        return None
-
-    logger.info("VCS: Succeeded")
+        raise NoVersionFound(
+            Source.vcs,
+            f"starting in directory {parent}, encountered: {e}",
+        )
     return version.serialize(dirty=not ON_RTD)
 
 
 def get_version_from_metadata(
     name: str, parent: Optional[Path] = None
 ) -> Optional[str]:
-    logger.info(f"metadata: Trying to get version for {name} in dir {parent}")
     try:
-        from pkg_resources import get_distribution, DistributionNotFound
-    except ImportError:
-        logger.info("metadata: Failed; could not import pkg_resources")
-        return None
+        pkg = distribution(name)
+    except PackageNotFoundError:
+        raise NoVersionFound(Source.metadata, f"could not find distribution {name}")
 
-    try:
-        pkg = get_distribution(name)
-    except DistributionNotFound:
-        logger.info(f"metadata: Failed; could not find distribution {name}")
-        return None
+    # For an installed package, the parent is the install location,
+    # For a dev package, it is the VCS repository.
+    (install_path,) = {p.parent.resolve() for p in get_pkg_paths(pkg)}
+    if parent is not None and parent.resolve() != install_path:
+        msg = (
+            "Distribution and package parent paths do not match;\n"
+            f"{parent.resolve()}\nis not\n{install_path}"
+        )
+        raise NoVersionFound(Source.metadata, msg)
 
-    # For an installed package, the parent is the install location
-    path_pkg = Path(pkg.location).resolve()
-    if parent is not None and path_pkg != parent.resolve():
-        msg = f"""\
-            metadata: Failed; distribution and package paths do not match:
-            {path_pkg}
-            !=
-            {parent.resolve()}\
-            """
-        logger.info(dedent(msg))
-        return None
-
-    logger.info(f"metadata: Succeeded")
     return pkg.version
+
+
+def get_pkg_paths(pkg: Distribution) -> List[Path]:
+    # Some egg-info packages have e.g. src/ paths in their SOURCES.txt file,
+    # but they also have this:
+    mods = (pkg.read_text("top_level.txt") or "").split()
+    if not mods and pkg.files:
+        # Fall back to RECORD file for dist-info packages without top_level.txt
+        mods = {
+            f.parts[0] if len(f.parts) > 1 else f.with_suffix("").name
+            for f in pkg.files
+            if f.suffix == ".py"
+        }
+    if not mods:
+        raise RuntimeError(
+            f"Can’t determine top level packages of {pkg.metadata['Name']}"
+        )
+    return [Path(pkg.locate_file(mod)) for mod in mods]
 
 
 def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -> str:
@@ -167,17 +195,28 @@ def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -
     if parent.name == "src":
         parent = parent.parent
 
-    version = (
-        get_version_from_dirname(parent)
-        or get_version_from_vcs(parent)
-        or get_version_from_metadata(dist_name, parent)
-    )
-
-    if version is None:
-        raise RuntimeError("No version found.")
+    errors = []
+    for method in (
+        get_version_from_dirname,
+        get_version_from_vcs,
+        partial(get_version_from_metadata, dist_name),
+    ):
+        try:
+            version = method(parent)
+        except NoVersionFound as e:
+            errors.append(e)
+        else:
+            break
+    else:
+        msg = "\n".join(f"- {e.source.value}:{maybe_indent(e.msg)}" for e in errors)
+        raise NoVersionFound(None, msg)
 
     assert RE_PEP440_VERSION.match(version)
     return version
+
+
+def maybe_indent(msg: str) -> str:
+    return f"\n{indent(msg, '  ')}" if "\n" in msg else f" {msg}"
 
 
 __version__ = get_version(__file__)

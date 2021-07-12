@@ -3,11 +3,11 @@ get_version |b-pypi| |b-conda| |b-travis| |b-cover| |b-black|
 Automatically use the latest “vX.X.X” Git tag as version in your Python package.
 
 It also supports getting the version from Python source distributions (``sdist``) or,
-once your package is installed, via ``pkg_resources`` (part of ``setuptools``).
+once your package is installed, via ``importlib.metadata``.
 
 usage
 -----
-Add ``setuptools`` to the dependencies of your package, and the following into ``yourpackage.py`` (or ``__init__.py``):
+Add the following into ``yourpackage.py`` (or ``__init__.py``):
 
 .. code-block:: python
 
