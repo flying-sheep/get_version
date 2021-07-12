@@ -5,16 +5,23 @@ Minimalistic and able to run without build step using pkg_resources.
 
 # __version__ is defined at the very end of this file.
 
+from __future__ import annotations
+
+import csv
 import re
 import os
-import typing as t
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 from pathlib import Path
 from textwrap import indent
-from typing import Union, Optional
+from typing import Union, Optional, Generator, List
+
+try:
+    from importlib.metadata import distribution, Distribution, PackageNotFoundError
+except ImportError:
+    from importlib_metadata import distribution, Distribution, PackageNotFoundError
 
 
 RE_PEP440_VERSION = re.compile(
@@ -59,8 +66,8 @@ class Source(Enum):
 
 @dataclass
 class NoVersionFound(RuntimeError):
-    source: t.Optional[Source] = None
-    msg: t.Optional[str] = None
+    source: Optional[Source] = None
+    msg: Optional[str] = None
 
     def __str__(self) -> str:
         src = f" via {self.source.value}" if self.source else ""
@@ -111,32 +118,39 @@ def get_version_from_metadata(
     name: str, parent: Optional[Path] = None
 ) -> Optional[str]:
     try:
-        from importlib.metadata import distribution, PackageNotFoundError
-    except ImportError:
-        from importlib_metadata import distribution, PackageNotFoundError
-
-    try:
         pkg = distribution(name)
     except PackageNotFoundError:
         raise NoVersionFound(Source.metadata, f"could not find distribution {name}")
 
-    # For an installed package, the parent is the install location
-    pkg_paths = {
-        Path(pkg.locate_file(mod)).parent.resolve()
-        for mod in (pkg.read_text("top_level.txt") or "").split()
-    }
-    if parent is not None and parent.resolve() not in pkg_paths:
+    # For an installed package, the parent is the install location,
+    # For a dev package, it is the VCS repository.
+    (install_path,) = {p.parent.resolve() for p in get_pkg_paths(pkg)}
+    if parent is not None and parent.resolve() != install_path:
         msg = (
             "Distribution and package parent paths do not match;\n"
-            f"{parent.resolve()}\nis not"
+            f"{parent.resolve()}\nis not\n{install_path}"
         )
-        if len(pkg_paths) > 1:
-            msg += " one of" + "".join(f"\n- {p}" for p in pkg_paths)
-        else:
-            msg += f"\n{next(iter(pkg_paths))}"
         raise NoVersionFound(Source.metadata, msg)
 
     return pkg.version
+
+
+def get_pkg_paths(pkg: Distribution) -> List[Path]:
+    # Some egg-info packages have e.g. src/ paths in their SOURCES.txt file,
+    # but they also have this:
+    mods = (pkg.read_text("top_level.txt") or "").split()
+    if not mods and pkg.files:
+        # Fall back to RECORD file for dist-info packages without top_level.txt
+        mods = {
+            f.parts[0] if len(f.parts) > 1 else f.with_suffix("").name
+            for f in pkg.files
+            if f.suffix == ".py"
+        }
+    if not mods:
+        raise RuntimeError(
+            f"Can’t determine top level packages of {pkg.metadata['Name']}"
+        )
+    return [Path(pkg.locate_file(mod)) for mod in mods]
 
 
 def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -> str:
