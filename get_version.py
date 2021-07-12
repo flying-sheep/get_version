@@ -7,7 +7,6 @@ Minimalistic and able to run without build step using pkg_resources.
 
 from __future__ import annotations
 
-import csv
 import re
 import os
 from contextlib import contextmanager
@@ -16,7 +15,7 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 from textwrap import indent
-from typing import Union, Optional, Generator, List
+from typing import Union, Optional, List
 
 try:
     from importlib.metadata import distribution, Distribution, PackageNotFoundError
