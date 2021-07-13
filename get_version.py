@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 from pathlib import Path
+from subprocess import run
 from textwrap import indent
 from typing import Union, Optional, List
 
@@ -94,15 +95,17 @@ def get_version_from_dirname(parent: Path) -> Optional[str]:
     return match["version"]
 
 
-def dunamai_get_from_vcs(dir_: Path):
-    from dunamai import Version
-
-    with working_dir(dir_):
-        return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
-
-
 def get_version_from_vcs(parent: Path) -> Optional[str]:
     parent = parent.resolve()
+    vcs_root = find_vcs_root(parent)
+    if vcs_root is None:
+        raise NoVersionFound(
+            Source.vcs, f"could not find VCS from directory “{parent}”."
+        )
+    if parent != vcs_root:
+        raise NoVersionFound(
+            Source.vcs, f"directory “{parent}” does not match VCS root “{vcs_root}”."
+        )
     try:
         version = dunamai_get_from_vcs(parent)
     except (RuntimeError, ImportError) as e:
@@ -111,6 +114,35 @@ def get_version_from_vcs(parent: Path) -> Optional[str]:
             f"starting in directory {parent}, encountered: {e}",
         )
     return version.serialize(dirty=not ON_RTD)
+
+
+def find_vcs_root(start: Path) -> Optional[Path]:
+    from dunamai import _detect_vcs, Vcs
+
+    with working_dir(start):
+        try:
+            vcs = _detect_vcs()
+        except RuntimeError:
+            return None
+    if vcs is Vcs.Git:
+        cmd = ["git", "rev-parse", "--show-toplevel"]
+    elif vcs is Vcs.Mercurial:
+        cmd = ["hg", "root"]
+    else:
+        raise NotImplementedError(
+            f"Please file a feature request to implement support for {vcs.value}."
+        )
+    ret = run(cmd, cwd=start, capture_output=True)
+    if ret.returncode != 0:
+        return None  # Swallow stderr. Maybe we should logging.debug() it instead?
+    return Path(os.fsdecode(ret.stdout.rstrip(b"\n")))
+
+
+def dunamai_get_from_vcs(dir_: Path):
+    from dunamai import Version
+
+    with working_dir(dir_):
+        return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
 
 
 def get_version_from_metadata(
