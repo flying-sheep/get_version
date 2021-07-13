@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from subprocess import run
 from typing import Dict, Union, Callable
@@ -6,6 +7,7 @@ import pytest
 from dunamai import Version
 
 import get_version
+from get_version import NoVersionFound
 
 Desc = Dict[str, Union["Desc", str, bytes]]
 TempTreeCB = Callable[[Desc], Path]
@@ -99,3 +101,38 @@ def test_metadata():
 
     v = get_version.get_version(Path(pytest.__file__))
     assert expected == v
+
+
+@pytest.mark.parametrize(
+    "gv_fn,path,e_cls,msg",
+    [
+        (
+            get_version.get_version_from_dirname,
+            ".",
+            NoVersionFound,
+            "No version found via Directory",
+        ),
+        (
+            get_version.get_version,
+            ".",
+            ValueError,
+            r"neither the name of an installed module nor the path to a \.py file",
+        ),
+        (
+            get_version.get_version,
+            "mod.py",
+            NoVersionFound,
+            re.compile(
+                r"^No version found:\n"
+                r"- Directory name:.*mod_dev_dir” does not contain a valid version\.\n"
+                r"- VCS:.*mod_dev_dir.*Unable to detect version control system\.\n"
+                r"- Package metadata: could not find distribution “mod”\.$"
+            ),
+        ),
+    ],
+)
+def test_error(temp_tree: TempTreeCB, gv_fn, path, e_cls, msg):
+    spec = dict(mod_dev_dir={"mod.py": "print('hi!')\n"})
+    with temp_tree(spec) as package:
+        with pytest.raises(e_cls, match=msg):
+            gv_fn(package / "mod_dev_dir" / path)

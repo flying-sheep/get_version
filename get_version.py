@@ -89,7 +89,7 @@ def get_version_from_dirname(parent: Path) -> Optional[str]:
     if not match:
         raise NoVersionFound(
             Source.dirname,
-            f"Name of directory “{parent}” does not contain a valid version.",
+            f"name of directory “{parent}” does not contain a valid version.",
         )
     return match["version"]
 
@@ -119,7 +119,7 @@ def get_version_from_metadata(
     try:
         pkg = distribution(name)
     except PackageNotFoundError:
-        raise NoVersionFound(Source.metadata, f"could not find distribution {name}")
+        raise NoVersionFound(Source.metadata, f"could not find distribution “{name}”.")
 
     # For an installed package, the parent is the install location,
     # For a dev package, it is the VCS repository.
@@ -180,7 +180,10 @@ def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -
             return str(v)
 
     if path.suffix != ".py":
-        msg = f"“package” is neither the name of an installed module nor the path to a .py file."
+        msg = (
+            f"“{package}” is neither the name of an installed module "
+            "nor the path to a .py file."
+        )
         if path.suffix:
             msg += f" Unknown file suffix {path.suffix}"
         raise ValueError(msg)
