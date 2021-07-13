@@ -125,7 +125,7 @@ def test_metadata():
             re.compile(
                 r"^No version found:\n"
                 r"- Directory name:.*mod_dev_dir” does not contain a valid version\.\n"
-                r"- VCS:.*mod_dev_dir.*Unable to detect version control system\.\n"
+                r"- VCS: could not find VCS from directory.*mod_dev_dir”\.\n"
                 r"- Package metadata: could not find distribution “mod”\.$"
             ),
         ),
