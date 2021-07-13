@@ -111,9 +111,15 @@ def get_version_from_vcs(parent: Path) -> Optional[str]:
     except (RuntimeError, ImportError, ValueError) as e:
         raise NoVersionFound(
             Source.vcs,
-            f"starting in directory {parent}, encountered: {e}",
+            f"starting in directory “{parent}”, encountered: {e}",
         )
-    return version.serialize(dirty=not ON_RTD)
+    try:
+        return version.serialize(dirty=not ON_RTD)
+    except ValueError as e:
+        raise NoVersionFound(
+            Source.vcs,
+            f"starting in directory “{parent}”, found unserializable version: {e}",
+        )
 
 
 def find_vcs_root(start: Path) -> Optional[Path]:
