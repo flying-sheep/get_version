@@ -108,7 +108,7 @@ def get_version_from_vcs(parent: Path) -> Optional[str]:
         )
     try:
         version = dunamai_get_from_vcs(parent)
-    except (RuntimeError, ImportError) as e:
+    except (RuntimeError, ImportError, ValueError) as e:
         raise NoVersionFound(
             Source.vcs,
             f"starting in directory {parent}, encountered: {e}",
