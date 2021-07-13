@@ -175,7 +175,7 @@ def get_pkg_paths(pkg: Distribution) -> List[Path]:
         mods = {
             f.parts[0] if len(f.parts) > 1 else f.with_suffix("").name
             for f in pkg.files
-            if f.suffix == ".py"
+            if f.suffix == ".py" or Path(pkg.locate_file(f)).is_symlink()
         }
     if not mods:
         raise RuntimeError(
