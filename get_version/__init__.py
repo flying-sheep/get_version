@@ -21,7 +21,10 @@ from textwrap import indent
 try:
     from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
+    if t.TYPE_CHECKING:
+        raise
+    else:
+        from typing_extensions import Literal
 
 try:
     from importlib.metadata import distribution, Distribution, PackageNotFoundError

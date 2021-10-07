@@ -7,16 +7,22 @@ from tempfile import TemporaryDirectory
 import pytest
 
 
-@t.runtime_checkable
-class Desc(t.Protocol):
-    def __getitem__(self, key: DescK) -> DescV:
-        ...
+try:
 
-    def __iter__(self) -> t.Iterator[DescK]:
-        ...
+    @t.runtime_checkable
+    class Desc(t.Protocol):
+        def __getitem__(self, key: DescK) -> DescV:
+            ...
 
-    def items(self) -> t.ItemsView[DescK, DescV]:
-        ...
+        def __iter__(self) -> t.Iterator[DescK]:
+            ...
+
+        def items(self) -> t.ItemsView[DescK, DescV]:
+            ...
+
+
+except AttributeError:  # Python <3.8
+    Desc = t.Mapping[t.Union[str, Path], t.Union[t.Any, str, bytes]]
 
 
 DescK = t.Union[str, Path]
