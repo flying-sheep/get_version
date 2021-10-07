@@ -55,8 +55,8 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         )
 
         parent = (package / "src") if has_src else package
-        v = get_version.get_version(parent / "git_mod.py")
-        assert f"{version}.post1.dev0+{hash}.dirty" == v
+        v_str = get_version.get_version(parent / "git_mod.py")
+        assert f"{version}.post1.dev0+{hash}.dirty" == v_str
 
 
 @pytest.mark.parametrize("version", ["0.1.3+dirty", "1.2.post29.dev0+41ced3e.dirty"])

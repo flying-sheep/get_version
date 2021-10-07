@@ -27,6 +27,10 @@ except ImportError:
         from importlib_metadata import distribution, Distribution, PackageNotFoundError
 
 
+if t.TYPE_CHECKING:
+    from dunamai import Version
+
+
 RE_PEP440_VERSION = re.compile(
     r"""
 (?:(?P<epoch>[0-9]+)!)?
@@ -153,7 +157,7 @@ def find_vcs_root(start: Path, *, vcs: VCS = "any") -> t.Optional[Path]:
     return Path(os.fsdecode(ret.stdout.rstrip(b"\n")))
 
 
-def dunamai_get_from_vcs(dir_: Path):
+def dunamai_get_from_vcs(dir_: Path) -> Version:
     from dunamai import Version
 
     with working_dir(dir_):
@@ -226,9 +230,7 @@ def get_version(
     if dist_name is None and not path.suffix and len(path.parts) == 1:
         # Is probably not a path
         dist_name = path.name
-        v = get_version_from_metadata(dist_name)
-        if v:
-            return str(v)
+        return get_version_from_metadata(dist_name)
 
     if path.suffix != ".py":
         msg = (
