@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import typing as t
+from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
 
 
-try:
+if t.TYPE_CHECKING:
 
     @t.runtime_checkable
     class Desc(t.Protocol):
@@ -20,14 +21,9 @@ try:
         def items(self) -> t.ItemsView[DescK, DescV]:
             ...
 
-
-except AttributeError:  # Python <3.8
-    Desc = t.Mapping[t.Union[str, Path], t.Union[t.Any, str, bytes]]
-
-
-DescK = t.Union[str, Path]
-DescV = t.Union[Desc, str, bytes]
-TempTreeCB = t.Callable[[Desc], Path]
+    DescK = t.Union[str, Path]
+    DescV = t.Union[Desc, str, bytes]
+    TempTreeCB = t.Callable[[Desc], Path]
 
 
 @pytest.fixture(scope="function")
@@ -41,7 +37,7 @@ def temp_tree() -> t.Generator[t.Callable[[Desc], Path], None, None]:
             elif isinstance(content, bytes):
                 path.write_bytes(content)
             else:
-                assert isinstance(content, Desc)
+                assert isinstance(content, Mapping)
                 mk_tree(content, path)
 
     dirs: t.List[TemporaryDirectory] = []
