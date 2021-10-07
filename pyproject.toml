@@ -25,6 +25,7 @@ test = [
     'pytest',
     'pytest-cov',
     'pytest-black',
+    'pytest-mypy',
     'pygments',  # for README highlighting check
 ]
 

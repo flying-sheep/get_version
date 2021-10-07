@@ -12,6 +12,5 @@ install:
   - pip install -U pip coveralls
   - pip install .[test]
 script:
-  - PYTHONPATH=. pytest --cov=get_version --black
-  - mypy .
+  - PYTHONPATH=. pytest --cov=get_version --black --mypy
 after_success: coveralls

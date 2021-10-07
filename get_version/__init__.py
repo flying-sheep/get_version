@@ -19,6 +19,11 @@ from subprocess import run
 from textwrap import indent
 
 try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
+try:
     from importlib.metadata import distribution, Distribution, PackageNotFoundError
 except ImportError:
     if t.TYPE_CHECKING:
@@ -53,7 +58,7 @@ RE_PEP440_VERSION = re.compile(
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
-VCS = t.Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fossil"
+VCS = Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fossil"
 
 
 @contextmanager
