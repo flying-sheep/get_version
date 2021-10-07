@@ -12,5 +12,6 @@ install:
   - pip install -U pip coveralls
   - pip install .[test]
 script:
-  - PYTHONPATH=. pytest --cov=get_version --black --mypy
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.9 ]]; then MYPY_ARG=--mypy; fi
+  - PYTHONPATH=. pytest --cov=get_version --black $MYPY_ARG
 after_success: coveralls
