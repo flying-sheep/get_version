@@ -33,3 +33,6 @@ include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 addopts = '-p get_version.testing'
+
+[tool.mypy]
+mypy_path = './type-stubs'

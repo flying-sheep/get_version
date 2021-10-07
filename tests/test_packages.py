@@ -66,7 +66,7 @@ def test_dir(temp_tree: TempTreeCB, has_src, version, distname):
     if has_src:
         content = dict(src=content)
     dirname = f"{distname}-{version}"
-    spec = {dirname: content}
+    spec: Desc = {dirname: content}
     with temp_tree(spec) as package:
         v = get_version.get_version_from_dirname(package / dirname)
         assert version == v
@@ -78,7 +78,7 @@ def test_dir(temp_tree: TempTreeCB, has_src, version, distname):
 
 def test_dir_dash(temp_tree: TempTreeCB):
     dirname = "dir-two-0.1"
-    spec = {dirname: {"dir_two.py": "print('hi!')\n"}}
+    spec: Desc = {dirname: {"dir_two.py": "print('hi!')\n"}}
     with temp_tree(spec) as package:
         v = get_version.get_version_from_dirname(package / dirname)
         assert "0.1" == v
@@ -129,7 +129,7 @@ def test_metadata():
     ],
 )
 def test_error(temp_tree: TempTreeCB, gv_fn, path, e_cls, msg):
-    spec = dict(mod_dev_dir={"mod.py": "print('hi!')\n"})
+    spec: Desc = dict(mod_dev_dir={"mod.py": "print('hi!')\n"})
     with temp_tree(spec) as package:
         with pytest.raises(e_cls, match=msg):
             gv_fn(package / "mod_dev_dir" / path)
