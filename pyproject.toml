@@ -22,11 +22,18 @@ description-file = 'README.rst'
 
 [tool.flit.metadata.requires-extra]
 test = [
-    'pytest',
+    'pytest>=6.2.5',
     'pytest-cov',
     'pytest-black',
+    'pytest-mypy',
     'pygments',  # for README highlighting check
 ]
 
 [tool.black]
 include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+addopts = '-p get_version.testing'
+
+[tool.mypy]
+mypy_path = './type-stubs'
