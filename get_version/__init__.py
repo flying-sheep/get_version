@@ -284,7 +284,7 @@ def maybe_indent(msg: str) -> str:
     return f"\n{indent(msg, '  ')}" if "\n" in msg else f" {msg}"
 
 
-__version__ = get_version(__file__)
+__version__ = get_version(__file__, vcs="git")
 
 
 if __name__ == "__main__":
