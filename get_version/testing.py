@@ -1,15 +1,31 @@
+from __future__ import annotations
+
+import typing as t
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Union, Callable, Dict, List
 
 import pytest
 
 
-Desc = Dict[Union[str, Path], Union["Desc", str, bytes]]
+@t.runtime_checkable
+class Desc(t.Protocol):
+    def __getitem__(self, key: DescK) -> DescV:
+        ...
+
+    def __iter__(self) -> t.Iterator[DescK]:
+        ...
+
+    def items(self) -> t.ItemsView[DescK, DescV]:
+        ...
+
+
+DescK = t.Union[str, Path]
+DescV = t.Union[Desc, str, bytes]
+TempTreeCB = t.Callable[[Desc], Path]
 
 
 @pytest.fixture(scope="function")
-def temp_tree() -> Callable[[Desc], Path]:
+def temp_tree() -> t.Generator[t.Callable[[Desc], Path], None, None]:
     def mk_tree(desc: Desc, parent: Path):
         parent.mkdir(parents=True, exist_ok=True)
         for name, content in desc.items():
@@ -19,10 +35,10 @@ def temp_tree() -> Callable[[Desc], Path]:
             elif isinstance(content, bytes):
                 path.write_bytes(content)
             else:
-                assert isinstance(content, dict)
+                assert isinstance(content, Desc)
                 mk_tree(content, path)
 
-    dirs = []  # type: List[TemporaryDirectory]
+    dirs: t.List[TemporaryDirectory] = []
 
     def get_temptree(desc: Desc) -> Path:
         d = TemporaryDirectory()

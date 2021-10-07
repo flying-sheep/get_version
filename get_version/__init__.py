@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import os
+import typing as t
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -16,12 +17,14 @@ from functools import partial
 from pathlib import Path
 from subprocess import run
 from textwrap import indent
-from typing import Union, Optional, List
 
 try:
     from importlib.metadata import distribution, Distribution, PackageNotFoundError
 except ImportError:
-    from importlib_metadata import distribution, Distribution, PackageNotFoundError
+    if t.TYPE_CHECKING:
+        raise
+    else:
+        from importlib_metadata import distribution, Distribution, PackageNotFoundError
 
 
 RE_PEP440_VERSION = re.compile(
@@ -46,9 +49,11 @@ RE_PEP440_VERSION = re.compile(
 RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
+VCS = t.Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fossil"
+
 
 @contextmanager
-def working_dir(dir_: Optional[os.PathLike] = None):
+def working_dir(dir_: t.Optional[os.PathLike] = None):
     curdir = os.getcwd()
     try:
         if dir_ is not None:
@@ -59,27 +64,27 @@ def working_dir(dir_: Optional[os.PathLike] = None):
 
 
 class Source(Enum):
+    all: None = None
     dirname = "Directory name"
     vcs = "VCS"
     metadata = "Package metadata"
 
+    def __bool__(self) -> bool:
+        return self is not Source.all
+
 
 @dataclass
 class NoVersionFound(RuntimeError):
-    source: Optional[Source] = None
-    msg: Optional[str] = None
+    source: Source
+    msg: str
 
     def __str__(self) -> str:
         src = f" via {self.source.value}" if self.source else ""
-        if self.msg is not None:
-            delim = "\n" if "\n" in self.msg else " "
-            msg = f":{delim}{self.msg}"
-        else:
-            msg = "."
-        return f"No version found{src}{msg}"
+        delim = "\n" if "\n" in self.msg else " "
+        return f"No version found{src}:{delim}{self.msg}"
 
 
-def get_version_from_dirname(parent: Path) -> Optional[str]:
+def get_version_from_dirname(parent: Path) -> str:
     """Extracted sdist"""
     parent = parent.resolve()
     re_dirname = re.compile(
@@ -95,9 +100,9 @@ def get_version_from_dirname(parent: Path) -> Optional[str]:
     return match["version"]
 
 
-def get_version_from_vcs(parent: Path) -> Optional[str]:
+def get_version_from_vcs(parent: Path, *, vcs: VCS = "any") -> str:
     parent = parent.resolve()
-    vcs_root = find_vcs_root(parent)
+    vcs_root = find_vcs_root(parent, vcs=vcs)
     if vcs_root is None:
         raise NoVersionFound(
             Source.vcs, f"could not find VCS from directory “{parent}”."
@@ -122,21 +127,25 @@ def get_version_from_vcs(parent: Path) -> Optional[str]:
         )
 
 
-def find_vcs_root(start: Path) -> Optional[Path]:
+def find_vcs_root(start: Path, *, vcs: VCS = "any") -> t.Optional[Path]:
     from dunamai import _detect_vcs, Vcs
 
-    with working_dir(start):
-        try:
-            vcs = _detect_vcs()
-        except RuntimeError:
-            return None
-    if vcs is Vcs.Git:
+    if vcs == "any":
+        with working_dir(start):
+            try:
+                vcs_e = _detect_vcs()
+            except RuntimeError:
+                return None
+    else:
+        vcs_e = Vcs(vcs)
+
+    if vcs_e is Vcs.Git:
         cmd = ["git", "rev-parse", "--show-toplevel"]
-    elif vcs is Vcs.Mercurial:
+    elif vcs_e is Vcs.Mercurial:
         cmd = ["hg", "root"]
     else:
         raise NotImplementedError(
-            f"Please file a feature request to implement support for {vcs.value}."
+            f"Please file a feature request to implement support for {vcs_e.value}."
         )
     ret = run(cmd, cwd=start, capture_output=True)
     if ret.returncode != 0:
@@ -151,9 +160,7 @@ def dunamai_get_from_vcs(dir_: Path):
         return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
 
 
-def get_version_from_metadata(
-    name: str, parent: Optional[Path] = None
-) -> Optional[str]:
+def get_version_from_metadata(name: str, parent: t.Optional[Path] = None) -> str:
     try:
         pkg = distribution(name)
     except PackageNotFoundError:
@@ -172,10 +179,10 @@ def get_version_from_metadata(
     return pkg.version
 
 
-def get_pkg_paths(pkg: Distribution) -> List[Path]:
+def get_pkg_paths(pkg: Distribution) -> t.List[Path]:
     # Some egg-info packages have e.g. src/ paths in their SOURCES.txt file,
     # but they also have this:
-    mods = (pkg.read_text("top_level.txt") or "").split()
+    mods = set((pkg.read_text("top_level.txt") or "").split())
     if not mods and pkg.files:
         # Fall back to RECORD file for dist-info packages without top_level.txt
         mods = {
@@ -190,7 +197,12 @@ def get_pkg_paths(pkg: Distribution) -> List[Path]:
     return [Path(pkg.locate_file(mod)) for mod in mods]
 
 
-def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -> str:
+def get_version(
+    package: t.Union[Path, str],
+    *,
+    dist_name: t.Optional[str] = None,
+    vcs: VCS = "any",
+) -> str:
     """Get the version of a package or module
 
     Pass a module path or package name (``dist_name``).
@@ -208,6 +220,7 @@ def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -
        dist_name: If the distribution name isn’t the same as the module name,
                   you can specify it, e.g. in ``PIL/__init__.py``,
                   there would be ``get_version(__file__, 'Pillow')``
+       vcs: Pass one of the supported VCSs to skip (slow) VCS detection
     """
     path = Path(package)
     if dist_name is None and not path.suffix and len(path.parts) == 1:
@@ -236,12 +249,13 @@ def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -
     if parent.name == "src":
         parent = parent.parent
 
-    errors = []
-    for method in (
+    methods: t.Iterable[t.Callable[[Path], str]] = (
         get_version_from_dirname,
-        get_version_from_vcs,
+        partial(get_version_from_vcs, vcs=vcs),
         partial(get_version_from_metadata, dist_name),
-    ):
+    )
+    errors = []
+    for method in methods:
         try:
             version = method(parent)
         except NoVersionFound as e:
@@ -250,7 +264,7 @@ def get_version(package: Union[Path, str], *, dist_name: Optional[str] = None) -
             break
     else:
         msg = "\n".join(f"- {e.source.value}:{maybe_indent(e.msg)}" for e in errors)
-        raise NoVersionFound(None, msg)
+        raise NoVersionFound(Source.all, msg)
 
     assert RE_PEP440_VERSION.match(version)
     return version

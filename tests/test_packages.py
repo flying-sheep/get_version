@@ -1,16 +1,13 @@
 import re
 from pathlib import Path
 from subprocess import run
-from typing import Dict, Union, Callable
 
 import pytest
 from dunamai import Version
 
 import get_version
 from get_version import NoVersionFound
-
-Desc = Dict[str, Union["Desc", str, bytes]]
-TempTreeCB = Callable[[Desc], Path]
+from get_version.testing import TempTreeCB, Desc
 
 
 @pytest.fixture(params=[True, False], ids=["src", "plain"])
@@ -22,7 +19,7 @@ def has_src(request) -> bool:
 @pytest.mark.parametrize("version", [Version("0.1.2"), Version("1", stage=("a", 2))])
 def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
     src_path = Path("git_mod.py")
-    content = {src_path: "print('hello')\n"}
+    content: Desc = {src_path: "print('hello')\n"}
     if has_src:
         src_path = Path("src") / src_path
         content = dict(src=content)
@@ -65,7 +62,7 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
 @pytest.mark.parametrize("version", ["0.1.3+dirty", "1.2.post29.dev0+41ced3e.dirty"])
 @pytest.mark.parametrize("distname", ["dir_mod", "dir-mod", "mod"])
 def test_dir(temp_tree: TempTreeCB, has_src, version, distname):
-    content = {"dir_mod.py": "print('hi!')\n"}
+    content: Desc = {"dir_mod.py": "print('hi!')\n"}
     if has_src:
         content = dict(src=content)
     dirname = f"{distname}-{version}"

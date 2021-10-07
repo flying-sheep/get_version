@@ -30,3 +30,6 @@ test = [
 
 [tool.black]
 include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+addopts = '-p get_version.testing'
