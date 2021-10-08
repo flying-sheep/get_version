@@ -24,7 +24,6 @@ description-file = 'README.rst'
 [tool.flit.metadata.requires-extra]
 test = [
     'pytest>=6.2.5',
-    'pytest-cov',
     'pytest-black',
     'pytest-mypy',
     'pygments',  # for README highlighting check
