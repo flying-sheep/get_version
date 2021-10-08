@@ -9,9 +9,9 @@ branches:
   - master  # All other branches should become (draft) PRs and be build that way
 
 install:
-  - pip install -U pip coveralls
+  - pip install -U pip coveralls coverage
   - pip install .[test]
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == 3.9 ]]; then MYPY_ARG=--mypy; fi
-  - PYTHONPATH=. pytest --cov=get_version --black $MYPY_ARG
+  - PYTHONPATH=. coverage run --source=get_version -m pytest --black $MYPY_ARG
 after_success: coveralls
