@@ -114,7 +114,10 @@ def get_version_from_dirname(parent: Path) -> str:
 
 def get_version_from_vcs(parent: Path, *, vcs: VCS = "any") -> str:
     parent = parent.resolve()
-    vcs_root = find_vcs_root(parent, vcs=vcs)
+    try:
+        vcs_root = find_vcs_root(parent, vcs=vcs)
+    except OSError:
+        raise NoVersionFound(Source.vcs, "could not execute VCS command.")
     if vcs_root is None:
         raise NoVersionFound(
             Source.vcs, f"could not find VCS from directory “{parent}”."
