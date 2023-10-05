@@ -1,5 +1,5 @@
-get_version |b-pypi| |b-conda| |b-travis| |b-cover| |b-black|
-=============================================================
+get_version |b-pypi| |b-conda| |b-ci| |b-cover| |b-black|
+=========================================================
 Automatically use the latest “vX.X.X” Git tag as version in your Python package.
 
 It also supports getting the version from Python source distributions (``sdist``) or,
@@ -19,8 +19,8 @@ contributing
 ------------
 Use |black|_ to ensure proper code style. In order to not forget you can use |pre-commit|_.
 
-.. |b-travis| image:: https://travis-ci.com/flying-sheep/get_version.svg?branch=master
-   :target: https://travis-ci.com/flying-sheep/get_version
+.. |b-ci| image:: https://github.com/flying-sheep/get_version/actions/workflows/run_tests.yml/badge.svg
+   :target: https://github.com/flying-sheep/get_version/actions/workflows/run_tests.yml
 .. |b-cover| image:: https://coveralls.io/repos/github/flying-sheep/get_version/badge.svg
    :target: https://coveralls.io/github/flying-sheep/get_version
 .. |b-pypi| image:: https://img.shields.io/pypi/v/get_version.svg

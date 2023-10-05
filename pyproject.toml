@@ -1,27 +1,22 @@
-[build-system]
-requires = ['flit-core>=2,<4', 'dunamai']
-build-backend = 'flit_core.buildapi'
-
-[tool.flit.metadata]
-module = 'get_version'
-author = 'Philipp Angerer'
-author-email = 'phil.angerer@gmail.com'
-home-page = 'https://github.com/flying-sheep/get_version'
+[project]
+name = 'get_version'
+authors = [{ name = 'Philipp Angerer', email = 'phil.angerer@gmail.com' }]
+urls.Homepage = 'https://github.com/flying-sheep/get_version'
 classifiers = [
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 ]
-requires-python = '>=3.7'
-requires = [
-    'dunamai',  # Version parsing
-    'importlib_metadata; python_version < "3.8"',
-    'typing_extensions; python_version < "3.8"',
+readme = 'README.rst'
+license = { file = 'LICENSE' } # 'GPL-3.0-or-later'
+requires-python = '>=3.9'
+dependencies = [
+    'dunamai>=1.19.0',  # Version parsing
 ]
-description-file = 'README.rst'
+dynamic = ['version', 'description']
 
-[tool.flit.metadata.requires-extra]
+[project.optional-dependencies]
 test = [
     'pytest>=6.2.5',
     'pytest-black',
@@ -32,8 +27,12 @@ test = [
 [tool.black]
 include = '\.pyi?$'
 
+[tool.ruff]
+select = ['E', 'F', 'W', 'I', 'UP', 'TCH']
+
 [tool.pytest.ini_options]
 addopts = '-p get_version.testing'
 
-[tool.mypy]
-mypy_path = './type-stubs'
+[build-system]
+requires = ['flit-core>=2,<4', 'dunamai']
+build-backend = 'flit_core.buildapi'

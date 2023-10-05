@@ -1,18 +1,30 @@
 from __future__ import annotations
 
+import os
 import re
+from contextlib import contextmanager
 from pathlib import Path
 from subprocess import run
-
-import pytest
-from dunamai import Version
 from typing import TYPE_CHECKING
 
 import get_version
+import pytest
+from dunamai import Version
 from get_version import NoVersionFound
 
 if TYPE_CHECKING:
-    from get_version.testing import TempTreeCB, Desc
+    from get_version.testing import Desc, TempTreeCB
+
+
+@contextmanager
+def chdir(dir_: os.PathLike | None = None):
+    curdir = os.getcwd()
+    try:
+        if dir_ is not None:
+            os.chdir(dir_)
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 @pytest.fixture(params=[True, False], ids=["src", "plain"])
@@ -29,15 +41,17 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         src_path = Path("src") / src_path
         content = dict(src=content)
     with temp_tree(content) as package:
-        with get_version.working_dir(package):
+        with chdir(package):
 
             def add_and_commit(msg: str):
-                run(f"git add {src_path}".split(), check=True)
-                run([*"git commit -m".split(), msg], check=True)
+                run(["git", "add", str(src_path)], check=True)
+                run(["git", "commit", "-m", msg], check=True)
 
-            run("git init".split(), check=True)
+            run(["git", "init", "-b", "main"], check=True)
+            run(["git", "config", "user.name", "A U Thor"], check=True)
+            run(["git", "config", "user.email", "author@example.com"], check=True)
             add_and_commit("initial")
-            run(f"git tag {'v' if with_v else ''}{version}".split(), check=True)
+            run(["git", "tag", f"{'v' if with_v else ''}{version}"], check=True)
             src_path.write_text("print('modified')")
             add_and_commit("modified")
             hash = run(
@@ -55,6 +69,8 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
                 distance=1,
                 commit=hash,
                 dirty=True,
+                branch="main",
+                timestamp=v.timestamp,  # Fake it, not important
             )
             == v
         )

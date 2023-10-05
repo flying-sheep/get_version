@@ -1,0 +1,56 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -e {0} # -e to fail on error
+
+jobs:
+  run_tester:
+    runs-on: ${{ matrix.config.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: "3.9", os: ubuntu-latest, python: "3.9" }
+          - { name: "3.10", os: ubuntu-latest, python: "3.10" }
+          - { name: "3.11", os: ubuntu-latest, python: "3.11" }
+          - { name: "3.12", os: ubuntu-latest, python: "3.12" }
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.config.python }}
+          cache: pip
+
+      - name: Install Python tools
+        run: |
+          python -m pip install --upgrade pip wheel
+
+      - name: Install Python package and dependencies
+        run: pip install .[test] coverage coveralls
+
+      - name: Run tests
+        run: coverage run --source=get_version -m pytest --verbose --color=yes
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
