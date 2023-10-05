@@ -42,13 +42,14 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         content = dict(src=content)
     with temp_tree(content) as package:
         with chdir(package):
-            auth_arg = "--author=A U Thor <author@example.com>"
 
             def add_and_commit(msg: str):
                 run(["git", "add", str(src_path)], check=True)
-                run(["git", "commit", auth_arg, "-m", msg], check=True)
+                run(["git", "commit", "-m", msg], check=True)
 
             run(["git", "init", "-b", "main"], check=True)
+            run(["git", "config", "user.name", "A U Thor"], check=True)
+            run(["git", "config", "user.email", "author@example.com"], check=True)
             add_and_commit("initial")
             run(["git", "tag", *(["v"] if with_v else []), version], check=True)
             src_path.write_text("print('modified')")
