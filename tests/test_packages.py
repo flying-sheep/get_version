@@ -69,6 +69,7 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
                 distance=1,
                 commit=hash,
                 dirty=True,
+                timestamp=v.timestamp,  # Fake it, not important
             )
             == v
         )
