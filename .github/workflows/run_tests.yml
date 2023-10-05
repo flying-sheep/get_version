@@ -50,6 +50,7 @@ jobs:
         run: pip install .[test] coverage coveralls
 
       - name: Run tests
-        run: |
-          coverage run --source=get_version -m pytest --verbose --color=yes
-          coveralls
+        run: coverage run --source=get_version -m pytest --verbose --color=yes
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
