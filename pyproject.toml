@@ -12,7 +12,7 @@ readme = 'README.rst'
 license = { file = 'LICENSE' } # 'GPL-3.0-or-later'
 requires-python = '>=3.9'
 dependencies = [
-    'dunamai',  # Version parsing
+    'dunamai>=1.19.0',  # Version parsing
 ]
 dynamic = ['version', 'description']
 

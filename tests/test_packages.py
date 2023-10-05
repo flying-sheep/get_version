@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+from contextlib import contextmanager
 from pathlib import Path
 from subprocess import run
 from typing import TYPE_CHECKING
@@ -12,6 +14,17 @@ from get_version import NoVersionFound
 
 if TYPE_CHECKING:
     from get_version.testing import Desc, TempTreeCB
+
+
+@contextmanager
+def chdir(dir_: os.PathLike | None = None):
+    curdir = os.getcwd()
+    try:
+        if dir_ is not None:
+            os.chdir(dir_)
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 @pytest.fixture(params=[True, False], ids=["src", "plain"])
@@ -28,7 +41,7 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         src_path = Path("src") / src_path
         content = dict(src=content)
     with temp_tree(content) as package:
-        with get_version.working_dir(package):
+        with chdir(package):
             auth_arg = "--author=A U Thor <author@example.com>"
 
             def add_and_commit(msg: str):

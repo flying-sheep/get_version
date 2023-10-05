@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import re
-from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
@@ -48,17 +47,6 @@ RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
 VCS = Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fossil"
-
-
-@contextmanager
-def working_dir(dir_: os.PathLike | None = None):
-    curdir = os.getcwd()
-    try:
-        if dir_ is not None:
-            os.chdir(dir_)
-        yield
-    finally:
-        os.chdir(curdir)
 
 
 class Source(Enum):
@@ -132,11 +120,10 @@ def find_vcs_root(start: Path, *, vcs: VCS = "any") -> Path | None:
     from dunamai import Vcs, _detect_vcs
 
     if vcs == "any":
-        with working_dir(start):
-            try:
-                vcs_e = _detect_vcs()
-            except RuntimeError:
-                return None
+        try:
+            vcs_e = _detect_vcs(None, start)
+        except RuntimeError:
+            return None
     else:
         vcs_e = Vcs(vcs)
 
@@ -157,8 +144,7 @@ def find_vcs_root(start: Path, *, vcs: VCS = "any") -> Path | None:
 def dunamai_get_from_vcs(dir_: Path) -> Version:
     from dunamai import Version
 
-    with working_dir(dir_):
-        return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
+    return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}", path=dir_)
 
 
 def get_version_from_metadata(name: str, parent: Path | None = None) -> str:
