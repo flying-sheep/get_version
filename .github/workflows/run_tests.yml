@@ -47,7 +47,7 @@ jobs:
           python -m pip install --upgrade pip wheel
 
       - name: Install Python package and dependencies
-        run: pip install .[test]
+        run: pip install .[test] coverage coveralls
 
       - name: Run tests
         run: |
