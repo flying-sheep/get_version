@@ -7,35 +7,21 @@ Minimalistic and able to run without build step using pkg_resources.
 
 from __future__ import annotations
 
-import re
 import os
-import typing as t
+import re
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
+from importlib.metadata import Distribution, PackageNotFoundError, distribution
 from pathlib import Path
 from subprocess import run
 from textwrap import indent
+from typing import TYPE_CHECKING, Literal
 
-try:
-    from typing import Literal
-except ImportError:
-    if t.TYPE_CHECKING:
-        raise
-    else:
-        from typing_extensions import Literal
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
-try:
-    from importlib.metadata import distribution, Distribution, PackageNotFoundError
-except ImportError:
-    if t.TYPE_CHECKING:
-        raise
-    else:
-        from importlib_metadata import distribution, Distribution, PackageNotFoundError
-
-
-if t.TYPE_CHECKING:
     from dunamai import Version
 
 
@@ -65,7 +51,7 @@ VCS = Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fo
 
 
 @contextmanager
-def working_dir(dir_: t.Optional[os.PathLike] = None):
+def working_dir(dir_: os.PathLike | None = None):
     curdir = os.getcwd()
     try:
         if dir_ is not None:
@@ -142,8 +128,8 @@ def get_version_from_vcs(parent: Path, *, vcs: VCS = "any") -> str:
         )
 
 
-def find_vcs_root(start: Path, *, vcs: VCS = "any") -> t.Optional[Path]:
-    from dunamai import _detect_vcs, Vcs
+def find_vcs_root(start: Path, *, vcs: VCS = "any") -> Path | None:
+    from dunamai import Vcs, _detect_vcs
 
     if vcs == "any":
         with working_dir(start):
@@ -175,7 +161,7 @@ def dunamai_get_from_vcs(dir_: Path) -> Version:
         return Version.from_any_vcs(f"(?x)v?{RE_PEP440_VERSION.pattern}")
 
 
-def get_version_from_metadata(name: str, parent: t.Optional[Path] = None) -> str:
+def get_version_from_metadata(name: str, parent: Path | None = None) -> str:
     try:
         pkg = distribution(name)
     except PackageNotFoundError:
@@ -194,7 +180,7 @@ def get_version_from_metadata(name: str, parent: t.Optional[Path] = None) -> str
     return pkg.version
 
 
-def get_pkg_paths(pkg: Distribution) -> t.List[Path]:
+def get_pkg_paths(pkg: Distribution) -> list[Path]:
     # Some egg-info packages have e.g. src/ paths in their SOURCES.txt file,
     # but they also have this:
     mods = set((pkg.read_text("top_level.txt") or "").split())
@@ -213,9 +199,9 @@ def get_pkg_paths(pkg: Distribution) -> t.List[Path]:
 
 
 def get_version(
-    package: t.Union[Path, str],
+    package: Path | str,
     *,
-    dist_name: t.Optional[str] = None,
+    dist_name: str | None = None,
     vcs: VCS = "any",
 ) -> str:
     """Get the version of a package or module
@@ -231,7 +217,8 @@ def get_version(
        (This is the only possibility when passing a name)
 
     Args:
-       package: package name or module path (``…/module.py`` or ``…/module/__init__.py``)
+       package: package name or module path
+                (``…/module.py`` or ``…/module/__init__.py``)
        dist_name: If the distribution name isn’t the same as the module name,
                   you can specify it, e.g. in ``PIL/__init__.py``,
                   there would be ``get_version(__file__, 'Pillow')``
@@ -262,7 +249,7 @@ def get_version(
     if parent.name == "src":
         parent = parent.parent
 
-    methods: t.Iterable[t.Callable[[Path], str]] = (
+    methods: Iterable[Callable[[Path], str]] = (
         get_version_from_dirname,
         partial(get_version_from_vcs, vcs=vcs),
         partial(get_version_from_metadata, dist_name),

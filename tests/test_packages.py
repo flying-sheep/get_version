@@ -3,16 +3,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from subprocess import run
-
-import pytest
-from dunamai import Version
 from typing import TYPE_CHECKING
 
 import get_version
+import pytest
+from dunamai import Version
 from get_version import NoVersionFound
 
 if TYPE_CHECKING:
-    from get_version.testing import TempTreeCB, Desc
+    from get_version.testing import Desc, TempTreeCB
 
 
 @pytest.fixture(params=[True, False], ids=["src", "plain"])
