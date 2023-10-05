@@ -29,14 +29,15 @@ def test_git(temp_tree: TempTreeCB, has_src, with_v, version):
         content = dict(src=content)
     with temp_tree(content) as package:
         with get_version.working_dir(package):
+            auth_arg = "--author=A U Thor <author@example.com>"
 
             def add_and_commit(msg: str):
-                run(f"git add {src_path}".split(), check=True)
-                run([*"git commit -m".split(), msg], check=True)
+                run(["git", "add", str(src_path)], check=True)
+                run(["git", "commit", auth_arg, "-m", msg], check=True)
 
-            run("git init".split(), check=True)
+            run(["git", "init", "-b", "main"], check=True)
             add_and_commit("initial")
-            run(f"git tag {'v' if with_v else ''}{version}".split(), check=True)
+            run(["git", "tag", *(["v"] if with_v else []), version], check=True)
             src_path.write_text("print('modified')")
             add_and_commit("modified")
             hash = run(
