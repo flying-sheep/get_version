@@ -19,13 +19,9 @@ dynamic = ['version', 'description']
 [project.optional-dependencies]
 test = [
     'pytest>=6.2.5',
-    'pytest-black',
     'pytest-mypy',
     'pygments',  # for README highlighting check
 ]
-
-[tool.black]
-include = '\.pyi?$'
 
 [tool.ruff]
 select = ['E', 'F', 'W', 'I', 'UP', 'TCH']
