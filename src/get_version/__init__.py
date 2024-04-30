@@ -12,14 +12,16 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from importlib.metadata import Distribution, PackageNotFoundError, distribution
+from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from subprocess import run
 from textwrap import indent
 from typing import TYPE_CHECKING, Literal
 
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from importlib.metadata import Distribution
 
     from dunamai import Version
 
@@ -175,13 +177,13 @@ def get_pkg_paths(pkg: Distribution) -> list[Path]:
         mods = {
             f.parts[0] if len(f.parts) > 1 else f.with_suffix("").name
             for f in pkg.files
-            if f.suffix == ".py" or Path(pkg.locate_file(f)).is_symlink()
+            if f.suffix == ".py" or Path(str(pkg.locate_file(f))).is_symlink()
         }
     if not mods:
         raise RuntimeError(
             f"Can’t determine top level packages of {pkg.metadata['Name']}"
         )
-    return [Path(pkg.locate_file(mod)) for mod in mods]
+    return [Path(str(pkg.locate_file(mod))) for mod in mods]
 
 
 def get_version(

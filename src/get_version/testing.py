@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, ItemsView, Iterator, Mapping
+from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING
 
 import pytest
 
+
 if TYPE_CHECKING:
+    from collections.abc import Callable, Generator, ItemsView, Iterator
+    from typing import Protocol, Union, runtime_checkable
 
     @runtime_checkable
     class Desc(Protocol):
@@ -22,9 +25,9 @@ if TYPE_CHECKING:
     TempTreeCB = Callable[[Desc], Path]
 
 
-@pytest.fixture(scope="function")
-def temp_tree() -> Generator[Callable[[Desc], Path], None, None]:
-    def mk_tree(desc: Desc, parent: Path):
+@pytest.fixture()
+def temp_tree() -> Generator[TempTreeCB, None, None]:
+    def mk_tree(desc: Desc, parent: Path) -> None:
         parent.mkdir(parents=True, exist_ok=True)
         for name, content in desc.items():
             path = parent / name
