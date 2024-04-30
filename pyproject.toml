@@ -42,6 +42,11 @@ exempt-modules = []
 addopts = ['-p', 'get_version.testing']
 filterwarnings = ['error']
 
+[tool.coverage.report]
+exclude_also = [
+    'if TYPE_CHECKING:',
+]
+
 [build-system]
 requires = ['flit-core>=2,<4', 'dunamai']
 build-backend = 'flit_core.buildapi'
