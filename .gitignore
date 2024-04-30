@@ -1,6 +1,6 @@
 # Caches
 __pycache__/
-/.*cache/
+*cache/
 /.coverage
 
 # Packaging

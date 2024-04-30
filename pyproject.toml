@@ -23,11 +23,33 @@ test = [
     'pygments',  # for README highlighting check
 ]
 
-[tool.ruff]
-select = ['E', 'F', 'W', 'I', 'UP', 'TCH']
+[tool.hatch.envs.hatch-test]
+features = ['test']
+
+[tool.ruff.lint]
+select = ['E', 'F', 'W', 'I', 'UP', 'TCH', 'ANN', 'RUF', 'PT']
+ignore = ['ANN101']
+allowed-confusables = ['’', '×']
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+known-first-party = ["get_version"]
+required-imports = ["from __future__ import annotations"]
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+exempt-modules = []
 
 [tool.pytest.ini_options]
-addopts = '-p get_version.testing'
+addopts = ['-p', 'get_version.testing']
+filterwarnings = ['error']
+
+[tool.coverage.run]
+source_pkgs = ["get_version"]
+[tool.coverage.paths]
+source = ["./src", "**/site-packages"]
+[tool.coverage.report]
+exclude_also = [
+    'if TYPE_CHECKING:',
+]
 
 [build-system]
 requires = ['flit-core>=2,<4', 'dunamai']
