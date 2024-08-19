@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     TempTreeCB = Callable[[Desc], Path]
 
 
-@pytest.fixture()
+@pytest.fixture
 def temp_tree() -> Generator[TempTreeCB, None, None]:
     def mk_tree(desc: Desc, parent: Path) -> None:
         parent.mkdir(parents=True, exist_ok=True)
