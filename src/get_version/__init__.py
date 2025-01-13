@@ -52,7 +52,7 @@ VCS = Literal["any", "git", "mercurial"]  # "darcs", "subversion", "bazaar", "fo
 
 
 class Source(Enum):
-    all: None = None
+    all = None
     dirname = "Directory name"
     vcs = "VCS"
     metadata = "Package metadata"
