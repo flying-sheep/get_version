@@ -16,7 +16,7 @@ dependencies = [
 ]
 dynamic = ['version', 'description']
 
-[project.optional-dependencies]
+[dependency-groups]
 test = [
     'pytest>=6.2.5',
     'pytest-mypy',
@@ -24,7 +24,7 @@ test = [
 ]
 
 [tool.hatch.envs.hatch-test]
-features = ['test']
+dependency-groups = ['test']
 
 [tool.ruff.lint]
 select = ['E', 'F', 'W', 'I', 'UP', 'TC', 'ANN', 'RUF', 'PT']
