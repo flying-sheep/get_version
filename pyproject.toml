@@ -27,27 +27,23 @@ test = [
 features = ['test']
 
 [tool.ruff.lint]
-select = ['E', 'F', 'W', 'I', 'UP', 'TCH', 'ANN', 'RUF', 'PT']
-ignore = ['ANN101']
+select = ['E', 'F', 'W', 'I', 'UP', 'TC', 'ANN', 'RUF', 'PT']
 allowed-confusables = ['’', '×']
-[tool.ruff.lint.isort]
-lines-after-imports = 2
-known-first-party = ["get_version"]
-required-imports = ["from __future__ import annotations"]
-[tool.ruff.lint.flake8-type-checking]
-strict = true
-exempt-modules = []
+isort.lines-after-imports = 2
+isort.known-first-party = ["get_version"]
+isort.required-imports = ["from __future__ import annotations"]
+flake8-type-checking.strict = true
+flake8-type-checking.exempt-modules = []
 
-[tool.pytest.ini_options]
+[tool.pytest]
 addopts = ['-p', 'get_version.testing']
 filterwarnings = ['error']
+strict = true
 
-[tool.coverage.run]
-source_pkgs = ["get_version"]
-[tool.coverage.paths]
-source = ["./src", "**/site-packages"]
-[tool.coverage.report]
-exclude_also = [
+[tool.coverage]
+run.source_pkgs = ["get_version"]
+paths.source = ["./src", "**/site-packages"]
+report.exclude_also = [
     'if TYPE_CHECKING:',
 ]
 
