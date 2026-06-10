@@ -53,7 +53,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.config.python }}
+          python-version: ${{ matrix.python }}
           cache: pip
       - name: Install Python tools
         run: |
